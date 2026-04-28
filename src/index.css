@@ -1,0 +1,38 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+@theme {
+  --color-background: #F8FAFC;
+  --color-foreground: #1E293B;
+
+  --color-card: #FFFFFF;
+  --color-card-foreground: #1E293B;
+
+  --color-primary: #5B5FEE;
+  --color-primary-foreground: #FFFFFF;
+
+  --color-muted: #F1F5F9;
+  --color-muted-foreground: #64748B;
+
+  --color-border: #E2E8F0;
+  --color-accent: #F59E0B;
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    @apply antialiased;
+  }
+
+  html {
+    font-family: 'Inter', sans-serif;
+  }
+}

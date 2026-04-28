@@ -1,0 +1,79 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Document ID: userId
+    // Fields:
+    //   - name: string (required)
+    //   - institution: string (optional)
+    //   - email: string (required, email format)
+    //   - role: string (required, ['teacher', 'admin'])
+    //
+    // Collection: lessonPlans
+    // Document ID: planId
+    // Fields:
+    //   - teacherId: string (required, matches auth.uid)
+    //   - subject: string (required)
+    //   - grade: string (required)
+    //   - topic: string (required)
+    //   - sequence: list (required)
+    //   - resources: list (optional)
+    //   - createdAt: timestamp (required)
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && 
+        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+         request.auth.token.email == "daniel.martin1106@gmail.com");
+    }
+
+    function isValidUser(data) {
+      return data.keys().hasAll(['name', 'email', 'role']) &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 100 &&
+             data.email is string && data.email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$") &&
+             data.role in ['teacher', 'admin'];
+    }
+
+    function isValidLessonPlan(data) {
+      return data.keys().hasAll(['teacherId', 'subject', 'grade', 'topic', 'sequence']) &&
+             data.teacherId == request.auth.uid &&
+             data.subject is string && data.subject.size() > 0 &&
+             data.grade is string && data.grade.size() > 0 &&
+             data.topic is string && data.topic.size() > 0 &&
+             data.sequence is list;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow create: if isAuthenticated() && isValidUser(request.resource.data) && (request.auth.uid == userId || isAdmin());
+      allow update: if isOwner(userId) && isValidUser(request.resource.data) && request.resource.data.role == resource.data.role || isAdmin();
+    }
+
+    match /lessonPlans/{planId} {
+      allow read: if isAuthenticated() && (resource.data.teacherId == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated() && isValidLessonPlan(request.resource.data);
+      allow update: if isAuthenticated() && resource.data.teacherId == request.auth.uid && isValidLessonPlan(request.resource.data);
+      allow delete: if isAuthenticated() && (resource.data.teacherId == request.auth.uid || isAdmin());
+    }
+  }
+}

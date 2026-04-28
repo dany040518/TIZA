@@ -1,0 +1,53 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "Teacher user profile",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "institution": { "type": "string" },
+        "email": { "type": "string", "format": "email" },
+        "role": { "type": "string", "enum": ["teacher", "admin"] }
+      },
+      "required": ["name", "email", "role"]
+    },
+    "LessonPlan": {
+      "title": "LessonPlan",
+      "description": "A generated lesson plan",
+      "type": "object",
+      "properties": {
+        "teacherId": { "type": "string" },
+        "subject": { "type": "string" },
+        "grade": { "type": "string" },
+        "topic": { "type": "string" },
+        "sequence": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "phase": { "type": "string" },
+              "time": { "type": "string" },
+              "title": { "type": "string" },
+              "description": { "type": "string" },
+              "tags": { "type": "array", "items": { "type": "string" } }
+            }
+          }
+        },
+        "resources": { "type": "array", "items": { "type": "string" } },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["teacherId", "subject", "topic", "sequence"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles"
+    },
+    "/lessonPlans/{planId}": {
+      "schema": "LessonPlan",
+      "description": "Lesson plans created by teachers"
+    }
+  }
+}
