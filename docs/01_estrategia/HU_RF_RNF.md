@@ -9,7 +9,8 @@ Capstone Design Project — 2025
 ODS 4 · Educación de Calidad · Colombia
 
 ---
-
+##link de vistas de la plataforma 
+https://stitch.withgoogle.com/projects/14997593706248079378
 ## Historias de Usuario
 
 Este documento recoge las 30 historias de usuario de Tiza, cubriendo cada acción que un docente realiza en la plataforma desde el registro hasta el uso diario. El actor en todas las historias es 'Docente', sin especificación de nivel educativo ni perfil tecnológico, para que la plataforma sirva a cualquier docente colombiano.
