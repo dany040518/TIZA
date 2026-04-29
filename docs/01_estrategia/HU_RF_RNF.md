@@ -14,11 +14,11 @@ https://stitch.withgoogle.com/projects/14997593706248079378
 
 ---
 
-## Especificaciones del Sistema de Diseño: Tiza Oasis
+## Especificaciones del Sistema de Diseño: Tiza
 
 ### 1. Identidad de Marca y Concepto
 **"El Atelier del Educador Moderno"**
-Tiza Oasis busca transformar la gestión académica en una experiencia táctil, organizada y cálida. El diseño se aleja de lo puramente técnico para adoptar una estética editorial que recuerda a cuadernos de alta calidad y espacios de estudio tranquilos.
+Tiza busca transformar la gestión académica en una experiencia táctil, organizada y cálida. El diseño se aleja de lo puramente técnico para adoptar una estética editorial que recuerda a cuadernos de alta calidad y espacios de estudio tranquilos.
 
 ---
 
