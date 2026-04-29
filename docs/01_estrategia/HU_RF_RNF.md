@@ -9,13 +9,76 @@ Capstone Design Project — 2025
 ODS 4 · Educación de Calidad · Colombia
 
 ---
-##link de vistas de la plataforma 
+## link de vistas de la plataforma 
 https://stitch.withgoogle.com/projects/14997593706248079378
+
+---
+
+## Especificaciones del Sistema de Diseño: Tiza Oasis
+
+### 1. Identidad de Marca y Concepto
+**"El Atelier del Educador Moderno"**
+Tiza Oasis busca transformar la gestión académica en una experiencia táctil, organizada y cálida. El diseño se aleja de lo puramente técnico para adoptar una estética editorial que recuerda a cuadernos de alta calidad y espacios de estudio tranquilos.
+
+---
+
+### 2. Paleta de Colores
+Diseñada para reducir la fatiga visual y transmitir confianza, con un enfoque en la accesibilidad (alto contraste).
+
+| Uso | Color | Hex | Descripción |
+| :--- | :--- | :--- | :--- |
+| **Primario** | Azul Tiza | `#2E5BFF` | Profesionalismo y tecnología. |
+| **Superficie** | Crema Oasis | `#FCF9F2` | Fondo cálido que reduce el deslumbramiento. |
+| **Acento** | Bosque Suave | `#2D6A4F` | Estados de éxito y naturaleza. |
+| **Alerta** | Terracota | `#BC4749` | Urgencia y errores sin ser agresivo. |
+| **Texto** | Carbón Mate | `#1C1C18` | Máxima legibilidad sobre fondos claros. |
+
+---
+
+### 3. Tipografía
+Utilizamos **Lexend**, una fuente diseñada específicamente para reducir el estrés visual y mejorar la velocidad de lectura.
+
+- **Títulos (H1, H2):** Lexend Bold / ExtraBold. Tracking ajustado para impacto editorial.
+- **Cuerpo de texto:** Lexend Regular / Medium. Tamaño base de 16px para asegurar legibilidad en móviles.
+- **Etiquetas y Micro-copy:** Lexend SemiBold. En mayúsculas con espaciado amplio para una sensación de orden.
+
+---
+
+### 4. Componentes Clave
+
+#### A. Navegación (Shell)
+- **TopAppBar:** Minimalista, con indicador de conectividad (Online/Offline) siempre visible.
+- **BottomNavBar (Móvil):** Botones grandes con etiquetas claras para acceso inmediato a los 5 pilares de la app.
+- **SideBar (Web):** Menú lateral persistente que organiza el flujo de trabajo sin saturar el área central.
+
+#### B. Contenedores y Tarjetas
+- **Tarjetas Editoriales:** Bordes redondeados (8px), sombras suaves y uso de bordes sutiles para separar secciones sin usar líneas pesadas.
+- **Micro-interacciones:** Estados de "Hover" y "Active" claramente diferenciados con cambios de tonalidad suaves.
+
+#### C. Controles de Entrada
+- **Campos de Texto:** Fondos sutilmente tonalizados para definir el área de escritura sin necesidad de bordes rígidos.
+- **Botones de Acción Única:** Tamaño mínimo de 44x44px para asegurar precisión táctil.
+
+#### D. Indicadores de Estado
+- **Badge de Conexión:** Un punto verde (Sincronizado) o naranja (Local) para dar tranquilidad al docente en zonas rurales.
+- **Semáforo de Urgencia:** Codificación visual para fechas de entrega.
+
+### 5. Principios de Diseño Aplicados
+1. **Una Acción Principal por Pantalla:** Evita la parálisis por decisión.
+2. **Carga Cognitiva Mínima:** Información jerarquizada de lo más general a lo más específico.
+3. **Optimización Rural:** Visualización clara de qué datos están guardados localmente.
+---
+
+## Diagrama de navegación del usuario.
+
+<img width="8192" height="6766" alt="Patient Appointment-2026-04-29-124133" src="https://github.com/user-attachments/assets/1561f6ba-48c2-4cec-8e66-92c6e73fa3da" />
+
+
+---
+
 ## Historias de Usuario
 
 Este documento recoge las 30 historias de usuario de Tiza, cubriendo cada acción que un docente realiza en la plataforma desde el registro hasta el uso diario. El actor en todas las historias es 'Docente', sin especificación de nivel educativo ni perfil tecnológico, para que la plataforma sirva a cualquier docente colombiano.
-
----
 
 ### Transversal — Autenticación y Cuenta
 
