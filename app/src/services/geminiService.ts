@@ -1,6 +1,12 @@
 import { GoogleGenAI } from "@google/genai";
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
+const apiKey = import.meta.env.VITE_GEMINI_API_KEY as string;
+
+if (!apiKey) {
+  console.warn("VITE_GEMINI_API_KEY is not set — lesson plan generation will fail");
+}
+
+const ai = new GoogleGenAI({ apiKey });
 
 export const generateLessonPlan = async (
   subject: string,
@@ -8,7 +14,6 @@ export const generateLessonPlan = async (
   topic: string,
   context?: string
 ) => {
-
   const prompt = `
 You are an expert instructional designer helping a teacher create complete, practical lesson plans.
 
@@ -91,26 +96,17 @@ Return ONLY valid JSON in this format:
 }
 `;
 
-  try {
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: prompt,
-    });
-    
-    const text = response.text || "";
-    // Clean up the response if it contains markdown code blocks
-    const cleanText = text.replace(/```json|```/g, '').trim();
+  const response = await ai.models.generateContent({
+    model: "gemini-2.0-flash",
+    contents: prompt,
+  });
 
-    const jsonMatch = cleanText.match(/\{[\s\S]*\}/);
+  const text = response.text ?? "";
+  const cleanText = text.replace(/```json|```/g, "").trim();
+  const jsonMatch = cleanText.match(/\{[\s\S]*\}/);
 
-    if (jsonMatch) {
-      const parsed = JSON.parse(jsonMatch[0]);
-      return parsed; // ya tiene { ideas: [...] }
-    }
+  if (!jsonMatch) return null;
 
-return null;
-  } catch (error) {
-    console.error("Error generating lesson plan:", error);
-    throw error;
-  }
+  const parsed = JSON.parse(jsonMatch[0]);
+  return parsed as { ideas: any[] };
 };
