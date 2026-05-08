@@ -1,20 +1,16 @@
 import React, { useState } from 'react';
-import { motion } from 'motion/react';
-import { User, School, Mail, Lock, ShieldCheck, Globe } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabaseClient';
 import { upsertProfile } from '@/lib/db';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Mark } from '@/components/tiza/Mark';
 
 export default function Register() {
-  const [fullName, setFullName] = useState('');
+  const [fullName, setFullName]       = useState('');
   const [institution, setInstitution] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [email, setEmail]             = useState('');
+  const [password, setPassword]       = useState('');
+  const [error, setError]             = useState('');
+  const [loading, setLoading]         = useState(false);
   const navigate = useNavigate();
 
   const handleRegister = async (e: React.FormEvent) => {
@@ -25,9 +21,7 @@ export default function Register() {
       const { data, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
-        options: {
-          data: { full_name: fullName, institution },
-        },
+        options: { data: { full_name: fullName, institution } },
       });
       if (signUpError) throw signUpError;
 
@@ -50,128 +44,146 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen grid grid-cols-1 md:grid-cols-2 bg-surface font-sans">
-      {/* Left Side - Hero */}
-      <div className="hidden md:flex flex-col justify-between p-12 bg-primary text-white relative overflow-hidden">
-        <div className="logo flex items-center gap-2 text-xl font-bold">
-          <div className="w-6 h-6 bg-white text-primary rounded flex items-center justify-center text-sm">T</div>
-          TIZA
+    <div className="min-h-screen bg-background relative overflow-hidden">
+      <div className="dawn-light" />
+
+      {/* Header */}
+      <header className="relative px-10 py-6 flex items-center justify-between border-b border-line">
+        <Mark to="/login" />
+        <nav className="flex items-center gap-6 font-mono text-[11px] uppercase tracking-[0.12em] text-mute">
+          <span>Crear cuenta</span>
+          <Link to="/login" className="text-ink hover:text-orange transition-colors">
+            Ya tengo cuenta
+          </Link>
+        </nav>
+      </header>
+
+      {/* Main */}
+      <main className="relative flex min-h-[calc(100vh-73px)]">
+
+        {/* Left — editorial */}
+        <div className="hidden lg:flex flex-col justify-between w-[480px] shrink-0 border-r border-line p-12">
+          <div />
+          <div>
+            <div className="eyebrow mb-8">— Una promesa sencilla</div>
+            <p className="font-serif font-light text-[36px] leading-[1.15] tracking-[-0.015em]">
+              Únete a la comunidad de educadores modernos.
+            </p>
+            <p className="mt-6 text-[14px] text-mute leading-relaxed max-w-[340px]">
+              Crea tu cuenta en menos de un minuto. Planeaciones de clase, seguimiento de grupos y mucho más — todo en un espacio diseñado para docentes.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            {[
+              { n: '01', t: 'Seguro y privado', s: 'Tus datos solo son tuyos.' },
+              { n: '02', t: 'Acceso global',    s: 'Desde cualquier dispositivo.' },
+              { n: '03', t: 'Sin contratos',    s: 'Empieza gratis.' },
+              { n: '04', t: 'IA responsable',   s: 'Sugerimos. Tú decides siempre.' },
+            ].map((f) => (
+              <div key={f.n} className="border border-line p-4 bg-paper">
+                <div className="font-mono text-[10px] text-orange tracking-widest mb-2">{f.n}</div>
+                <div className="font-serif text-[15px]">{f.t}</div>
+                <div className="text-[11.5px] text-mute mt-1">{f.s}</div>
+              </div>
+            ))}
+          </div>
         </div>
 
-        <div className="max-w-md">
-          <h1 className="text-5xl font-bold leading-tight mb-6">
-            Únete a la comunidad de educadores modernos.
+        {/* Right — form */}
+        <div className="flex-1 flex flex-col justify-center px-8 md:px-16 py-12 max-w-[560px] mx-auto lg:mx-0">
+          <div className="eyebrow mb-6">— Bienvenido</div>
+          <h1 className="font-serif font-light text-[44px] leading-[1.05] tracking-[-0.02em] mb-8">
+            Crea tu{' '}
+            <span className="italic text-orange">espacio</span>
+            <span className="text-orange">.</span>
           </h1>
-          <p className="text-lg opacity-90 leading-relaxed">
-            Crea una cuenta gratuita y comienza a diseñar experiencias de aprendizaje memorables hoy mismo.
-          </p>
-        </div>
 
-        <div className="features grid grid-cols-2 gap-4">
-          <div className="p-4 bg-white/10 rounded-lg border border-white/20">
-            <ShieldCheck className="w-6 h-6 mb-2" />
-            <p className="text-sm font-bold">Seguro y Privado</p>
-            <p className="text-xs opacity-70">Tus datos están protegidos.</p>
-          </div>
-          <div className="p-4 bg-white/10 rounded-lg border border-white/20">
-            <Globe className="w-6 h-6 mb-2" />
-            <p className="text-sm font-bold">Acceso Global</p>
-            <p className="text-xs opacity-70">Desde cualquier dispositivo.</p>
-          </div>
-        </div>
+          <form onSubmit={handleRegister} className="space-y-6">
 
-        <div className="absolute top-[-10%] right-[-10%] w-64 h-64 bg-white/5 rounded-full blur-3xl" />
-        <div className="absolute bottom-[-5%] left-[-5%] w-48 h-48 bg-accent/20 rounded-full blur-2xl" />
-      </div>
-
-      {/* Right Side - Form */}
-      <div className="flex flex-col justify-center p-8 md:p-24 bg-surface">
-        <div className="max-w-sm w-full mx-auto space-y-8">
-          <div className="space-y-2">
-            <h2 className="text-3xl font-bold text-text-main">Crear Cuenta</h2>
-            <p className="text-text-muted">Comienza tu viaje con TIZA hoy.</p>
-          </div>
-
-          <form onSubmit={handleRegister} className="space-y-5">
-            {error && <p className="text-destructive text-sm font-medium bg-destructive/10 p-3 rounded-md">{error}</p>}
-
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label className="text-xs font-semibold uppercase text-text-muted">Nombre Completo</Label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
-                  <Input
-                    required
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    placeholder="Prof. Juana Pérez"
-                    className="pl-10 h-11 bg-surface border-border rounded-md"
-                  />
-                </div>
+            {error && (
+              <div className="p-3 border border-destructive/30 bg-destructive/5 text-[13px] text-destructive">
+                {error}
               </div>
+            )}
 
-              <div className="space-y-2">
-                <Label className="text-xs font-semibold uppercase text-text-muted">Institución Educativa</Label>
-                <div className="relative">
-                  <School className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
-                  <Input
-                    required
-                    value={institution}
-                    onChange={(e) => setInstitution(e.target.value)}
-                    placeholder="Colegio San José"
-                    className="pl-10 h-11 bg-surface border-border rounded-md"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-xs font-semibold uppercase text-text-muted">Correo Institucional</Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
-                  <Input
-                    required
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="juana@institucion.edu"
-                    className="pl-10 h-11 bg-surface border-border rounded-md"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-xs font-semibold uppercase text-text-muted">Contraseña</Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
-                  <Input
-                    required
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="pl-10 h-11 bg-surface border-border rounded-md"
-                  />
-                </div>
-              </div>
+            <div>
+              <label className="eyebrow block mb-2">Nombre completo</label>
+              <input
+                required
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                placeholder="Prof. Juana Pérez"
+                className="w-full bg-transparent border-0 border-b border-line py-2.5 text-[17px] font-serif focus:outline-none focus:border-orange transition-colors placeholder:text-mute-soft"
+              />
             </div>
 
-            <Button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-primary hover:bg-primary-dark text-white rounded-md h-11 font-semibold shadow-sm transition-all"
-            >
-              {loading ? 'Creando cuenta...' : 'Crear Cuenta'}
-            </Button>
+            <div>
+              <label className="eyebrow block mb-2">Institución educativa</label>
+              <input
+                required
+                value={institution}
+                onChange={(e) => setInstitution(e.target.value)}
+                placeholder="Colegio San José"
+                className="w-full bg-transparent border-0 border-b border-line py-2.5 text-[17px] font-serif focus:outline-none focus:border-orange transition-colors placeholder:text-mute-soft"
+              />
+            </div>
+
+            <div>
+              <label className="eyebrow block mb-2">Correo electrónico</label>
+              <input
+                required
+                type="email"
+                autoComplete="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="juana@escuela.edu"
+                className="w-full bg-transparent border-0 border-b border-line py-2.5 text-[17px] font-serif focus:outline-none focus:border-orange transition-colors placeholder:text-mute-soft"
+              />
+            </div>
+
+            <div>
+              <label className="eyebrow block mb-2">Contraseña</label>
+              <input
+                required
+                type="password"
+                autoComplete="new-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Mínimo 8 caracteres"
+                className="w-full bg-transparent border-0 border-b border-line py-2.5 text-[17px] font-serif focus:outline-none focus:border-orange transition-colors placeholder:text-mute-soft"
+              />
+            </div>
+
+            <div className="pt-2">
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-ink text-paper py-3.5 text-[14px] hover:bg-orange transition-colors disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2.5"
+              >
+                {loading ? (
+                  <>
+                    <span className="ink-pulse" />
+                    Creando tu espacio…
+                  </>
+                ) : (
+                  <>
+                    Crear cuenta
+                    <span className="heart" style={{ background: '#FAFAFA' }} />
+                  </>
+                )}
+              </button>
+            </div>
           </form>
 
-          <p className="text-center text-sm text-text-muted">
-            ¿Ya tienes una cuenta?{' '}
-            <Link to="/login" className="text-primary font-semibold hover:underline">
+          <p className="mt-8 text-[13px] text-mute">
+            ¿Ya tienes cuenta?{' '}
+            <Link to="/login" className="text-ink hover:text-orange transition-colors underline underline-offset-4 decoration-line">
               Inicia sesión
             </Link>
           </p>
         </div>
-      </div>
+      </main>
     </div>
   );
 }

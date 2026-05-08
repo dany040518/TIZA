@@ -1,17 +1,13 @@
 import React, { useState } from 'react';
-import { motion } from 'motion/react';
-import { Mail, Lock } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabaseClient';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { Mark } from '@/components/tiza/Mark';
 
 export default function Login() {
-  const [email, setEmail] = useState('');
+  const [email, setEmail]       = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [error, setError]       = useState('');
+  const [loading, setLoading]   = useState(false);
   const navigate = useNavigate();
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -38,122 +34,142 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen grid grid-cols-1 md:grid-cols-2 bg-surface font-sans">
-      {/* Left Side - Hero */}
-      <div className="hidden md:flex flex-col justify-between p-12 bg-primary text-white relative overflow-hidden">
-        <div className="logo flex items-center gap-2 text-xl font-bold">
-          <div className="w-6 h-6 bg-white text-primary rounded flex items-center justify-center text-sm">T</div>
-          TIZA
-        </div>
+    <div className="min-h-screen bg-background relative overflow-hidden">
+      <div className="dawn-light" />
 
-        <div className="max-w-md">
-          <h1 className="text-5xl font-bold leading-tight mb-6">
-            Empoderando a los educadores con IA.
-          </h1>
-          <p className="text-lg opacity-90 leading-relaxed">
-            Diseña lecciones impactantes, gestiona tu aula y recupera tu tiempo para lo que más importa: enseñar.
-          </p>
-        </div>
+      {/* Header */}
+      <header className="relative px-10 py-6 flex items-center justify-between border-b border-line">
+        <Mark to="/login" />
+        <nav className="flex items-center gap-6 font-mono text-[11px] uppercase tracking-[0.12em] text-mute">
+          <span>Acceso seguro</span>
+          <Link to="/register" className="text-ink hover:text-orange transition-colors">
+            Crear cuenta
+          </Link>
+        </nav>
+      </header>
 
-        <div className="testimonial p-6 bg-white/10 rounded-xl backdrop-blur-sm border border-white/20">
-          <p className="italic text-sm mb-4">
-            "Tiza ha transformado completamente mi preparación de clases. Lo que antes me tomaba horas, ahora lo hago en minutos con una calidad superior."
-          </p>
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-white/20 rounded-full" />
-            <div>
-              <p className="text-sm font-bold">Dra. Elena Martínez</p>
-              <p className="text-xs opacity-70">Profesora de Ciencias</p>
+      {/* Main */}
+      <main className="relative flex min-h-[calc(100vh-73px)]">
+
+        {/* Left — editorial */}
+        <div className="hidden lg:flex flex-col justify-between w-[480px] shrink-0 border-r border-line p-12">
+          <div />
+          <div>
+            <div className="eyebrow mb-8">— Un espacio, no un dashboard</div>
+            <p className="font-serif font-light text-[36px] leading-[1.15] tracking-[-0.015em]">
+              Diseñado para el ritmo real de los educadores.
+            </p>
+            <p className="mt-6 text-[14px] text-mute leading-relaxed max-w-[340px]">
+              TIZA no automatiza la enseñanza. Protege <em className="italic text-ink not-italic">el humano en el docente</em> — manejando el resto en silencio.
+            </p>
+          </div>
+
+          <div className="p-5 bg-blush-mist/60 border border-blush-air">
+            <p className="font-serif italic text-[15px] leading-relaxed text-mute font-light">
+              "Lo que antes me tomaba horas, ahora lo hago en minutos con una calidad superior."
+            </p>
+            <div className="mt-4 flex items-center gap-3">
+              <div className="w-7 h-7 rounded-full bg-blush flex items-center justify-center font-serif text-[13px]">E</div>
+              <div>
+                <div className="text-[12.5px] text-ink">Dra. Elena Martínez</div>
+                <div className="text-[11px] text-mute">Profesora de Ciencias</div>
+              </div>
             </div>
           </div>
         </div>
 
-        <div className="absolute top-[-10%] right-[-10%] w-64 h-64 bg-white/5 rounded-full blur-3xl" />
-        <div className="absolute bottom-[-5%] left-[-5%] w-48 h-48 bg-accent/20 rounded-full blur-2xl" />
-      </div>
-
-      {/* Right Side - Form */}
-      <div className="flex flex-col justify-center p-8 md:p-24 bg-surface">
-        <div className="max-w-sm w-full mx-auto space-y-8">
-          <div className="space-y-2">
-            <h2 className="text-3xl font-bold text-text-main">Bienvenido de nuevo</h2>
-            <p className="text-text-muted">Ingresa tus credenciales para acceder a tu panel.</p>
-          </div>
+        {/* Right — form */}
+        <div className="flex-1 flex flex-col justify-center px-8 md:px-16 py-12 max-w-[560px] mx-auto lg:mx-0">
+          <div className="eyebrow mb-6">— Bienvenido de vuelta</div>
+          <h1 className="font-serif font-light text-[44px] leading-[1.05] tracking-[-0.02em] mb-8">
+            Entra a tu{' '}
+            <span className="italic text-orange">espacio</span>
+            <span className="text-orange">.</span>
+          </h1>
 
           <form onSubmit={handleLogin} className="space-y-6">
-            {error && <p className="text-destructive text-sm font-medium bg-destructive/10 p-3 rounded-md">{error}</p>}
 
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label className="text-xs font-semibold uppercase text-text-muted">Correo Electrónico</Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
-                  <Input
-                    required
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="ejemplo@escuela.edu"
-                    className="pl-10 h-11 bg-surface border-border rounded-md"
-                  />
-                </div>
+            {error && (
+              <div className="p-3 border border-destructive/30 bg-destructive/5 text-[13px] text-destructive">
+                {error}
               </div>
+            )}
 
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label className="text-xs font-semibold uppercase text-text-muted">Contraseña</Label>
-                  <button type="button" className="text-xs font-semibold text-primary hover:underline">¿Olvidaste tu contraseña?</button>
-                </div>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
-                  <Input
-                    required
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="pl-10 h-11 bg-surface border-border rounded-md"
-                  />
-                </div>
-              </div>
+            <div>
+              <label className="eyebrow block mb-2">Correo electrónico</label>
+              <input
+                required
+                type="email"
+                autoComplete="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="valentina@escuela.edu"
+                className="w-full bg-transparent border-0 border-b border-line py-2.5 text-[17px] font-serif focus:outline-none focus:border-orange transition-colors placeholder:text-mute-soft"
+              />
             </div>
 
-            <Button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-primary hover:bg-primary-dark text-white rounded-md h-11 font-semibold shadow-sm transition-all"
-            >
-              {loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
-            </Button>
-
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t border-border" />
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="eyebrow">Contraseña</label>
+                <button type="button" className="text-[11px] text-mute hover:text-orange transition-colors">
+                  ¿Olvidaste la contraseña?
+                </button>
               </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-surface px-2 text-text-muted">O continuar con</span>
-              </div>
+              <input
+                required
+                type="password"
+                autoComplete="current-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                className="w-full bg-transparent border-0 border-b border-line py-2.5 text-[17px] font-serif focus:outline-none focus:border-orange transition-colors placeholder:text-mute-soft"
+              />
             </div>
 
-            <Button
-              type="button"
-              variant="outline"
-              onClick={handleGoogleLogin}
-              className="w-full border-border text-text-main rounded-md h-11 flex items-center justify-center gap-2 font-medium hover:bg-slate-50"
-            >
-              <img src="https://www.google.com/favicon.ico" className="w-4 h-4" alt="Google" />
-              Google
-            </Button>
+            <div className="pt-2 space-y-3">
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-ink text-paper py-3.5 text-[14px] hover:bg-orange transition-colors disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2.5"
+              >
+                {loading ? (
+                  <>
+                    <span className="ink-pulse" />
+                    Entrando…
+                  </>
+                ) : (
+                  <>
+                    Iniciar sesión
+                    <span className="heart" style={{ background: '#FAFAFA' }} />
+                  </>
+                )}
+              </button>
+
+              <div className="relative flex items-center gap-4">
+                <div className="flex-1 h-px bg-line" />
+                <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-mute">o</span>
+                <div className="flex-1 h-px bg-line" />
+              </div>
+
+              <button
+                type="button"
+                onClick={handleGoogleLogin}
+                className="w-full border border-line text-ink py-3 text-[13.5px] hover:border-mute transition-colors flex items-center justify-center gap-2.5"
+              >
+                <img src="https://www.google.com/favicon.ico" className="w-4 h-4" alt="" />
+                Continuar con Google
+              </button>
+            </div>
           </form>
 
-          <p className="text-center text-sm text-text-muted">
-            ¿No tienes una cuenta?{' '}
-            <Link to="/register" className="text-primary font-semibold hover:underline">
+          <p className="mt-8 text-[13px] text-mute">
+            ¿No tienes cuenta?{' '}
+            <Link to="/register" className="text-ink hover:text-orange transition-colors underline underline-offset-4 decoration-line">
               Regístrate gratis
             </Link>
           </p>
         </div>
-      </div>
+      </main>
     </div>
   );
 }
