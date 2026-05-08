@@ -1,19 +1,33 @@
-import { useState, useEffect } from 'react';
-import { onAuthStateChanged, User } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { useEffect, useState } from 'react'
+import type { User, Session } from '@supabase/supabase-js'
+import { supabase } from '@/lib/supabaseClient'
 
 export function useAuth() {
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState<User | null>(null)
+  const [session, setSession] = useState<Session | null>(null)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user);
-      setLoading(false);
-    });
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session)
+      setUser(session?.user ?? null)
+      setLoading(false)
+    })
 
-    return () => unsubscribe();
-  }, []);
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (_event, session) => {
+        setSession(session)
+        setUser(session?.user ?? null)
+        setLoading(false)
+      }
+    )
 
-  return { user, loading };
+    return () => subscription.unsubscribe()
+  }, [])
+
+  // Supabase stores display name in user_metadata
+  const displayName: string | null =
+    user?.user_metadata?.full_name ?? user?.email ?? null
+
+  return { user, session, loading, displayName }
 }

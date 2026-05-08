@@ -12,8 +12,7 @@ import {
   Settings,
   Plus
 } from 'lucide-react';
-import { signOut } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { supabase } from '@/lib/supabaseClient';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,21 +24,17 @@ interface DashboardLayoutProps {
 }
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
-  const { user } = useAuth();
+  const { displayName } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
 
-  const initials = user?.displayName 
-    ? user.displayName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+  const initials = displayName
+    ? displayName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
     : 'U';
 
   const handleLogout = async () => {
-    try {
-      await signOut(auth);
-      navigate('/login');
-    } catch (err) {
-      console.error("Logout error:", err);
-    }
+    await supabase.auth.signOut();
+    navigate('/login');
   };
 
   const menuItems = [
@@ -123,7 +118,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
             <div className="user-profile flex items-center gap-3 pl-6 border-l border-border">
               <div className="text-right">
-                <p className="text-sm font-semibold text-text-main">{user?.displayName || 'Usuario'}</p>
+                <p className="text-sm font-semibold text-text-main">{displayName || 'Usuario'}</p>
                 <p className="text-xs text-text-muted">Docente</p>
               </div>
               <Avatar className="w-10 h-10 bg-primary text-white flex items-center justify-center font-semibold rounded-full">

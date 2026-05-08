@@ -1,13 +1,11 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { Mail, Lock, Bolt } from 'lucide-react';
+import { Mail, Lock } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import { signInWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { supabase } from '@/lib/supabaseClient';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent } from '@/components/ui/card';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -21,7 +19,8 @@ export default function Login() {
     setError('');
     setLoading(true);
     try {
-      await signInWithEmailAndPassword(auth, email, password);
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw error;
       navigate('/dashboard');
     } catch (err: any) {
       setError(err.message);
@@ -31,13 +30,11 @@ export default function Login() {
   };
 
   const handleGoogleLogin = async () => {
-    const provider = new GoogleAuthProvider();
-    try {
-      await signInWithPopup(auth, provider);
-      navigate('/dashboard');
-    } catch (err: any) {
-      setError(err.message);
-    }
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: { redirectTo: `${window.location.origin}/dashboard` },
+    });
+    if (error) setError(error.message);
   };
 
   return (
@@ -48,7 +45,7 @@ export default function Login() {
           <div className="w-6 h-6 bg-white text-primary rounded flex items-center justify-center text-sm">T</div>
           TIZA
         </div>
-        
+
         <div className="max-w-md">
           <h1 className="text-5xl font-bold leading-tight mb-6">
             Empoderando a los educadores con IA.
@@ -71,7 +68,6 @@ export default function Login() {
           </div>
         </div>
 
-        {/* Decorative Circles */}
         <div className="absolute top-[-10%] right-[-10%] w-64 h-64 bg-white/5 rounded-full blur-3xl" />
         <div className="absolute bottom-[-5%] left-[-5%] w-48 h-48 bg-accent/20 rounded-full blur-2xl" />
       </div>
@@ -92,12 +88,12 @@ export default function Login() {
                 <Label className="text-xs font-semibold uppercase text-text-muted">Correo Electrónico</Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
-                  <Input 
+                  <Input
                     required
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="ejemplo@escuela.edu" 
+                    placeholder="ejemplo@escuela.edu"
                     className="pl-10 h-11 bg-surface border-border rounded-md"
                   />
                 </div>
@@ -110,20 +106,20 @@ export default function Login() {
                 </div>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
-                  <Input 
+                  <Input
                     required
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••" 
+                    placeholder="••••••••"
                     className="pl-10 h-11 bg-surface border-border rounded-md"
                   />
                 </div>
               </div>
             </div>
 
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               disabled={loading}
               className="w-full bg-primary hover:bg-primary-dark text-white rounded-md h-11 font-semibold shadow-sm transition-all"
             >
@@ -139,7 +135,7 @@ export default function Login() {
               </div>
             </div>
 
-            <Button 
+            <Button
               type="button"
               variant="outline"
               onClick={handleGoogleLogin}

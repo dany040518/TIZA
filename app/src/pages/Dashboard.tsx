@@ -15,8 +15,8 @@ import { cn } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
 
 export default function Dashboard() {
-  const { user } = useAuth();
-  const firstName = user?.displayName?.split(' ')[0] || 'Docente';
+  const { displayName } = useAuth();
+  const firstName = displayName?.split(' ')[0] || 'Docente';
 
   const days = [
     { name: 'LUN', date: 21 },

@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
-import { User, School, Mail, Lock, ArrowRight, ShieldCheck, Globe } from 'lucide-react';
+import { User, School, Mail, Lock, ShieldCheck, Globe } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
-import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
-import { setDoc, doc } from 'firebase/firestore';
-import { auth, db, handleFirestoreError, OperationType } from '@/lib/firebase';
+import { supabase } from '@/lib/supabaseClient';
+import { upsertProfile } from '@/lib/db';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -23,25 +22,23 @@ export default function Register() {
     setError('');
     setLoading(true);
     try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const user = userCredential.user;
-      
-      // Update profile with full name
-      await updateProfile(user, {
-        displayName: fullName
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { full_name: fullName, institution },
+        },
       });
-      
-      // Save user profile to Firestore
-      try {
-        await setDoc(doc(db, 'users', user.uid), {
+      if (signUpError) throw signUpError;
+
+      if (data.user) {
+        await upsertProfile({
+          id: data.user.id,
           name: fullName,
-          institution: institution,
-          email: email,
+          institution,
+          email,
           role: 'teacher',
-          createdAt: new Date().toISOString()
         });
-      } catch (fsErr) {
-        handleFirestoreError(fsErr, OperationType.WRITE, `users/${user.uid}`);
       }
 
       navigate('/dashboard');
@@ -60,7 +57,7 @@ export default function Register() {
           <div className="w-6 h-6 bg-white text-primary rounded flex items-center justify-center text-sm">T</div>
           TIZA
         </div>
-        
+
         <div className="max-w-md">
           <h1 className="text-5xl font-bold leading-tight mb-6">
             Únete a la comunidad de educadores modernos.
@@ -83,7 +80,6 @@ export default function Register() {
           </div>
         </div>
 
-        {/* Decorative Circles */}
         <div className="absolute top-[-10%] right-[-10%] w-64 h-64 bg-white/5 rounded-full blur-3xl" />
         <div className="absolute bottom-[-5%] left-[-5%] w-48 h-48 bg-accent/20 rounded-full blur-2xl" />
       </div>
@@ -104,11 +100,11 @@ export default function Register() {
                 <Label className="text-xs font-semibold uppercase text-text-muted">Nombre Completo</Label>
                 <div className="relative">
                   <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
-                  <Input 
+                  <Input
                     required
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                    placeholder="Prof. Juana Pérez" 
+                    placeholder="Prof. Juana Pérez"
                     className="pl-10 h-11 bg-surface border-border rounded-md"
                   />
                 </div>
@@ -118,11 +114,11 @@ export default function Register() {
                 <Label className="text-xs font-semibold uppercase text-text-muted">Institución Educativa</Label>
                 <div className="relative">
                   <School className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
-                  <Input 
+                  <Input
                     required
                     value={institution}
                     onChange={(e) => setInstitution(e.target.value)}
-                    placeholder="Colegio San José" 
+                    placeholder="Colegio San José"
                     className="pl-10 h-11 bg-surface border-border rounded-md"
                   />
                 </div>
@@ -132,12 +128,12 @@ export default function Register() {
                 <Label className="text-xs font-semibold uppercase text-text-muted">Correo Institucional</Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
-                  <Input 
+                  <Input
                     required
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="juana@institucion.edu" 
+                    placeholder="juana@institucion.edu"
                     className="pl-10 h-11 bg-surface border-border rounded-md"
                   />
                 </div>
@@ -147,19 +143,19 @@ export default function Register() {
                 <Label className="text-xs font-semibold uppercase text-text-muted">Contraseña</Label>
                 <div className="relative">
                   <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
-                  <Input 
+                  <Input
                     required
                     type="password"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••" 
+                    placeholder="••••••••"
                     className="pl-10 h-11 bg-surface border-border rounded-md"
                   />
                 </div>
               </div>
             </div>
 
-            <Button 
+            <Button
               type="submit"
               disabled={loading}
               className="w-full bg-primary hover:bg-primary-dark text-white rounded-md h-11 font-semibold shadow-sm transition-all"
