@@ -1,42 +1,40 @@
 import { motion } from 'motion/react';
-import { ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import DashboardLayout from '../components/layouts/DashboardLayout';
 import { useAuth } from '@/hooks/useAuth';
+import { Star, Squiggle } from '@/components/tiza/Mark';
 import { cn } from '@/lib/utils';
 
-// Static focus items — will become dynamic once DB is wired
-const focus = [
+const TASKS = [
   {
-    n: '01',
-    title: 'Crea tu primera planeación',
-    body: 'Describe el tema, el grado y el contexto. TIZA te propone tres ideas muy diferentes — tú eliges.',
-    meta: 'Planeación IA · listo',
-    to: '/planning',
-    cta: 'Ir a planeación',
-    accent: true,
+    time: 'ahora',
+    tag: 'planeación · IA lista',
+    title: 'Crea tu primera planeación de clase',
+    note: 'Describe el tema, el grado y el contexto — tiza propone tres ideas muy diferentes.',
+    color: 'var(--color-blush)',
+    action: 'Ir a planeación',
+    link: '/planning' as const,
   },
   {
-    n: '02',
-    title: 'Asistencia y seguimiento',
-    body: 'Registra la asistencia de cada grupo y recibe alertas cuando un estudiante muestra ausentismo frecuente.',
-    meta: 'Próximamente',
-    to: '/dashboard',
-    cta: 'Pronto disponible',
-    accent: false,
+    time: 'pronto',
+    tag: 'próximamente',
+    title: 'Asistencia y seguimiento de grupos',
+    note: 'Registra asistencia y recibe alertas cuando un estudiante muestra ausentismo frecuente.',
+    color: 'var(--color-butter)',
+    action: 'En desarrollo',
+    link: null,
   },
   {
-    n: '03',
-    title: 'Informes automáticos',
-    body: 'Genera informes de progreso, boletines y comunicados en minutos a partir de tus registros existentes.',
-    meta: 'Próximamente',
-    to: '/dashboard',
-    cta: 'Pronto disponible',
-    accent: false,
+    time: 'pronto',
+    tag: 'próximamente',
+    title: 'Informes automáticos de progreso',
+    note: 'Genera boletines y comunicados en minutos a partir de tus registros existentes.',
+    color: 'var(--color-mint)',
+    action: 'En desarrollo',
+    link: null,
   },
 ];
 
-// Calendar — week strip (static for now)
 const days = [
   { name: 'LUN', date: 4 },
   { name: 'MAR', date: 5 },
@@ -47,7 +45,22 @@ const days = [
   { name: 'DOM', date: 10 },
 ] as const;
 
-const today = 7; // Thursday
+const today = 7;
+
+function VoiceCard({ tag, bg, body, children }: { tag: string; bg: string; body: string; children?: React.ReactNode }) {
+  return (
+    <div className="sticker p-6" style={{ background: bg }}>
+      <div className="flex items-center gap-2 label" style={{ color: 'var(--color-orange)' }}>
+        <span className="rounded-full inline-block" style={{ width: 8, height: 8, background: 'var(--color-orange)' }} />
+        {tag}
+      </div>
+      <p className="mt-3 m-0 font-semibold text-[16px] leading-snug" style={{ color: 'var(--color-plum)' }}>
+        {body}
+      </p>
+      {children && <div className="mt-4 flex flex-wrap gap-2">{children}</div>}
+    </div>
+  );
+}
 
 export default function Dashboard() {
   const { displayName } = useAuth();
@@ -55,138 +68,166 @@ export default function Dashboard() {
 
   return (
     <DashboardLayout>
-      <div className="relative min-h-full">
-        <div className="dawn-light opacity-50" />
+      <main className="mx-auto max-w-[1320px] px-6 md:px-10 py-10 grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-8">
 
-        <div className="relative px-10 py-8 max-w-[1280px] mx-auto space-y-14">
+        {/* ── Left ─────────────────────────────────────────────── */}
+        <section>
 
-          {/* ── Greeting ──────────────────────────────────────── */}
+          {/* Greeting card */}
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
+            className="sticker sticker-lg p-8 md:p-10 mb-8"
+            style={{ background: 'var(--color-paper)' }}
           >
-            <div className="eyebrow mb-5">— Panel de control</div>
-            <h1 className="font-serif font-light text-[52px] leading-[1.05] tracking-[-0.02em] max-w-[780px]">
-              Hola, {firstName}.<br />
-              <span className="italic text-mute">
-                ¿Qué necesitas{' '}
-              </span>
-              <span className="italic text-orange">
-                hoy
-              </span>
-              <span className="italic text-mute">?</span>
+            <div className="flex items-center gap-3">
+              <Star size={22} fill="var(--color-orange)" />
+              <span className="label" style={{ color: 'var(--color-mute)' }}>panel de control</span>
+            </div>
+
+            {/* Hero H1 — PJS 800 + Newsreader italic accent */}
+            <h1 className="font-display mt-5 m-0" style={{ fontSize: 'clamp(38px, 5.5vw, 64px)' }}>
+              Hola,{' '}
+              <span className="serif-em" style={{ color: 'var(--color-orange)' }}>{firstName}</span>.
             </h1>
+
+            <p className="mt-3 text-[18px] font-medium" style={{ color: 'var(--color-mute)', lineHeight: 1.4 }}>
+              ¿Qué necesitas hoy?
+            </p>
+
+            <div className="mt-6 flex flex-wrap gap-2">
+              <span className="chip" style={{ background: 'var(--color-blush)' }}>planeación IA</span>
+              <span className="chip" style={{ background: 'var(--color-butter)' }}>seguimiento pronto</span>
+              <span className="chip" style={{ background: 'var(--color-mint)' }}>informes pronto</span>
+            </div>
           </motion.div>
 
-          {/* ── Focus cards ───────────────────────────────────── */}
-          <section>
-            <div className="eyebrow mb-5">— Acciones</div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {focus.map((f, i) => (
-                <motion.div
-                  key={f.n}
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.07 }}
-                  className={cn(
-                    'border p-6 transition-all group',
-                    f.accent
-                      ? 'border-blush bg-gradient-to-b from-paper to-blush-mist/60 hover:-translate-y-0.5 hover:shadow-[0_16px_32px_-24px_rgba(40,32,20,0.2)]'
-                      : 'border-line bg-paper opacity-60'
-                  )}
-                >
-                  <div className="flex items-center justify-between mb-4">
-                    <span className={cn(
-                      'font-mono text-[10px] tracking-[0.18em]',
-                      f.accent ? 'text-orange' : 'text-mute'
-                    )}>
-                      {f.n}
-                    </span>
-                    {f.accent && <span className="ink-pulse" />}
-                  </div>
-                  <h3 className="font-serif font-light text-[22px] leading-[1.2] tracking-[-0.01em]">
-                    {f.title}
-                  </h3>
-                  <p className="mt-3 text-[13.5px] leading-[1.6] text-mute">
-                    {f.body}
-                  </p>
-                  <div className="mt-6 pt-4 border-t border-line-soft flex items-center justify-between">
-                    <span className="font-mono text-[10.5px] uppercase tracking-[0.12em] text-mute">
-                      {f.meta}
-                    </span>
-                    {f.accent ? (
-                      <Link
-                        to={f.to}
-                        className="text-[12.5px] text-ink hover:text-orange transition-colors inline-flex items-center gap-1"
-                      >
-                        {f.cta} <ArrowRight className="w-3.5 h-3.5" />
-                      </Link>
-                    ) : (
-                      <span className="text-[12.5px] text-mute-soft italic">En desarrollo</span>
-                    )}
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-          </section>
+          {/* Tilted task cards */}
+          <div className="space-y-4">
+            {TASKS.map((t, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.15 + i * 0.08 }}
+                className={cn('sticker p-6 md:p-7 grid gap-5 items-center', t.link && 'sticker-hover')}
+                style={{
+                  background: t.color,
+                  gridTemplateColumns: '80px 1fr auto',
+                  transform: `rotate(${i % 2 === 0 ? -0.4 : 0.4}deg)`,
+                  opacity: t.link ? 1 : 0.72,
+                }}
+              >
+                {/* Time */}
+                <div className="font-bold text-[22px] leading-tight tracking-tight" style={{ color: 'var(--color-plum)' }}>
+                  {t.time}
+                </div>
 
-          {/* ── Week calendar ─────────────────────────────────── */}
-          <section>
-            <div className="eyebrow mb-5">— Esta semana</div>
-            <div className="grid grid-cols-7 gap-2">
+                {/* Content */}
+                <div>
+                  <div className="label mb-2" style={{ color: t.link ? 'var(--color-orange)' : 'var(--color-mute)' }}>
+                    {t.link && '✿ '}{t.tag}
+                  </div>
+                  <div className="font-bold text-[18px] leading-snug" style={{ color: 'var(--color-plum)' }}>
+                    {t.title}
+                  </div>
+                  <div className="text-[13px] font-medium mt-1.5" style={{ color: 'var(--color-mute)' }}>
+                    {t.note}
+                  </div>
+                </div>
+
+                {/* CTA */}
+                <div>
+                  {t.link ? (
+                    <Link to={t.link} className="btn-chunky btn-chunky-plum" style={{ padding: '10px 16px', fontSize: 13 }}>
+                      {t.action} →
+                    </Link>
+                  ) : (
+                    <span className="chip" style={{ fontSize: 11, background: 'var(--color-paper)', opacity: 0.8 }}>
+                      {t.action}
+                    </span>
+                  )}
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </section>
+
+        {/* ── Right sidebar ────────────────────────────────────── */}
+        <aside className="space-y-5">
+
+          {/* From tiza — dark card */}
+          <motion.div
+            initial={{ opacity: 0, x: 12 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.3 }}
+            className="sticker sticker-lg p-7"
+            style={{ background: 'var(--color-plum)', color: 'var(--color-cream)', borderColor: 'var(--color-cream)' }}
+          >
+            <div className="font-hand" style={{ fontSize: 24, color: 'var(--color-butter)' }}>
+              de tiza ✿
+            </div>
+            <p className="mt-3 m-0 font-semibold text-[17px] leading-relaxed" style={{ color: 'var(--color-cream)' }}>
+              Comienza con una planeación.{' '}
+              <span className="serif-em" style={{ color: 'var(--color-blush)' }}>
+                El resto se abre desde ahí.
+              </span>
+            </p>
+          </motion.div>
+
+          {/* Week calendar */}
+          <div className="sticker p-5" style={{ background: 'var(--color-paper)' }}>
+            <div className="label mb-4" style={{ color: 'var(--color-mute)' }}>esta semana</div>
+            <div className="grid grid-cols-7 gap-1.5">
               {days.map((d) => {
                 const active = d.date === today;
                 return (
                   <div
                     key={d.date}
-                    className={cn(
-                      'flex flex-col items-center py-4 border transition-colors',
+                    className="flex flex-col items-center py-2.5 transition-all"
+                    style={
                       active
-                        ? 'border-orange bg-orange text-paper'
-                        : 'border-line bg-paper text-mute hover:border-mute cursor-pointer'
-                    )}
+                        ? { background: 'var(--color-orange)', border: '2px solid var(--color-plum)', boxShadow: '3px 3px 0 var(--color-plum)', borderRadius: 14 }
+                        : { border: '1.5px solid oklch(0.24 0.06 340 / 0.2)', borderRadius: 10 }
+                    }
                   >
-                    <span className="font-mono text-[10px] tracking-[0.14em] mb-2 opacity-70">
+                    <span
+                      className="text-[9px] font-bold tracking-wider mb-1.5 uppercase"
+                      style={{ color: active ? 'oklch(0.99 0.012 85 / 0.8)' : 'var(--color-mute)' }}
+                    >
                       {d.name}
                     </span>
-                    <span className={cn(
-                      'font-serif text-[22px] font-light tracking-[-0.01em]',
-                      active ? 'text-paper' : 'text-ink'
-                    )}>
+                    <span
+                      className="font-bold text-[18px] leading-none"
+                      style={{ color: active ? 'var(--color-paper)' : 'var(--color-plum)' }}
+                    >
                       {d.date}
                     </span>
                     {active && (
-                      <span
-                        className="mt-2 w-1.5 h-1.5 rounded-full"
-                        style={{ background: 'rgba(255,255,255,0.6)' }}
-                      />
+                      <span className="mt-1.5 w-1.5 h-1.5 rounded-full" style={{ background: 'oklch(0.99 0.012 85 / 0.6)' }} />
                     )}
                   </div>
                 );
               })}
             </div>
-          </section>
+          </div>
 
-          {/* ── TIZA note ─────────────────────────────────────── */}
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.4 }}
-            className="pb-8"
+          {/* Voice card */}
+          <VoiceCard
+            tag="bienvenida"
+            bg="var(--color-blush)"
+            body="Tu espacio está listo. Las planeaciones son el mejor primer paso."
           >
-            <div className="p-6 bg-blush-mist/50 border border-blush-air max-w-[560px]">
-              <div className="eyebrow text-orange mb-3 flex items-center gap-2">
-                <span className="ink-pulse" /> Una nota de TIZA
-              </div>
-              <p className="font-serif text-[18px] leading-[1.45] italic font-light">
-                "Comienza con una planeación. El resto del espacio de trabajo se abre desde ahí."
-              </p>
-            </div>
-          </motion.div>
+            <Link to="/planning" className="chip" style={{ background: 'var(--color-paper)', fontSize: 12 }}>
+              Ir a planeación
+            </Link>
+          </VoiceCard>
 
-        </div>
-      </div>
+          <Squiggle color="var(--color-orange)" className="w-32 h-3 ml-1" />
+        </aside>
+
+      </main>
     </DashboardLayout>
   );
 }

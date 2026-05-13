@@ -1,19 +1,16 @@
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Home, Calendar } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
-import { cn } from '@/lib/utils';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useAuth } from '@/hooks/useAuth';
-import { Mark } from '@/components/tiza/Mark';
+import { Mark, Star } from '@/components/tiza/Mark';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
 }
 
-const nav = [
-  { num: '01', label: 'Panel', path: '/dashboard' },
-  { num: '02', label: 'Planeación', path: '/planning' },
+const tabs = [
+  { to: '/dashboard',  label: 'Panel',      emoji: '✿', bg: 'var(--color-blush)'  },
+  { to: '/planning',   label: 'Planeación', emoji: '✎', bg: 'var(--color-butter)' },
 ] as const;
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
@@ -30,86 +27,80 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     navigate('/login');
   };
 
-  const pageTitle = nav.find(n => n.path === location.pathname)?.label ?? 'TIZA';
-
   return (
-    <div className="flex h-screen bg-background">
+    <div className="min-h-screen" style={{ color: 'var(--color-plum)' }}>
 
-      {/* ── Sidebar ─────────────────────────────────────────── */}
-      <aside className="w-[240px] shrink-0 border-r border-line bg-paper-warm flex flex-col h-screen sticky top-0">
+      {/* ── Top bar ──────────────────────────────────────────── */}
+      <header className="mx-auto max-w-[1320px] px-6 md:px-10 pt-7 pb-4 flex flex-wrap items-center justify-between gap-4">
 
-        {/* Logo */}
-        <div className="px-6 pt-6 pb-8">
-          <Mark to="/dashboard" />
-        </div>
+        <Mark to="/dashboard" />
 
-        {/* Navigation */}
-        <nav className="px-3 flex flex-col gap-px">
-          {nav.map((item) => {
-            const active = location.pathname === item.path;
+        {/* Tab navigation */}
+        <nav
+          className="sticker flex items-center gap-1.5 p-1.5"
+          style={{ boxShadow: '3px 3px 0 var(--color-plum)' }}
+        >
+          {tabs.map((t) => {
+            const active = location.pathname === t.to;
             return (
               <Link
-                key={item.path}
-                to={item.path}
-                className={cn(
-                  'flex items-baseline gap-3 px-4 py-2.5 rounded-sm transition-colors',
-                  active
-                    ? 'bg-paper text-ink'
-                    : 'text-mute hover:bg-paper hover:text-ink'
-                )}
+                key={t.to}
+                to={t.to}
+                className="px-4 py-2 rounded-full no-underline font-semibold text-[14px] flex items-center gap-2 transition-all"
+                style={{
+                  background: active ? t.bg : 'transparent',
+                  color: 'var(--color-plum)',
+                }}
               >
-                <span className="font-mono text-[10px] tracking-[0.14em] text-mute-soft">
-                  {item.num}
-                </span>
-                <span className="text-[14px]">{item.label}</span>
-                {active && (
-                  <span className="ml-auto heart" aria-hidden />
-                )}
+                <span aria-hidden style={{ color: 'var(--color-orange)' }}>{t.emoji}</span>
+                {t.label}
               </Link>
             );
           })}
         </nav>
 
-        {/* User profile + logout */}
-        <div className="mt-auto px-6 pb-6 pt-6 border-t border-line-soft">
-          <div className="flex items-center gap-3">
-            <Avatar className="w-8 h-8 shrink-0">
-              <AvatarFallback className="bg-blush text-ink text-[12px] font-medium">
-                {initials}
-              </AvatarFallback>
-            </Avatar>
-            <div className="min-w-0">
-              <div className="text-[13px] text-ink truncate">
-                {displayName || 'Docente'}
-              </div>
+        {/* User info + logout */}
+        <div className="flex items-center gap-3">
+          <div
+            className="hidden md:flex items-center gap-3 chip"
+            style={{ background: 'var(--color-paper)' }}
+          >
+            <span
+              className="rounded-full font-bold text-[12px] flex items-center justify-center shrink-0"
+              style={{
+                width: 28, height: 28,
+                background: 'var(--color-butter)',
+                border: '2px solid var(--color-plum)',
+              }}
+            >
+              {initials}
+            </span>
+            <div className="leading-tight">
+              <div className="font-semibold text-[13px]">{displayName || 'Docente'}</div>
               <button
                 onClick={handleLogout}
-                className="text-[11px] text-mute hover:text-orange transition-colors"
+                className="text-[11px] transition-colors hover:text-[color:var(--color-orange)]"
+                style={{ color: 'var(--color-mute)' }}
               >
                 Cerrar sesión
               </button>
             </div>
           </div>
+
+          <button
+            className="btn-chunky btn-chunky-blush md:hidden"
+            style={{ padding: '10px 16px', fontSize: 13 }}
+            onClick={handleLogout}
+          >
+            <Star size={14} fill="var(--color-orange)" />
+            Salir
+          </button>
         </div>
-      </aside>
+      </header>
 
-      {/* ── Main content ─────────────────────────────────────── */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-
-        {/* Context bar */}
-        <div className="flex items-center justify-between px-10 py-3 border-b border-line bg-paper-warm/40 shrink-0">
-          <div className="eyebrow">{pageTitle}</div>
-          <div className="flex items-center gap-2 font-mono text-[10.5px] text-mute">
-            <span className="ink-pulse" />
-            TIZA
-          </div>
-        </div>
-
-        {/* Page content */}
-        <main className="flex-1 overflow-auto">
-          {children}
-        </main>
-      </div>
+      <main>
+        {children}
+      </main>
     </div>
   );
 }

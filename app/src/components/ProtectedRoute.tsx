@@ -8,8 +8,8 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#F8F9FD]">
-        <Loader2 className="w-12 h-12 text-[#5B7EEB] animate-spin" />
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <Loader2 className="w-10 h-10 text-orange animate-spin" />
       </div>
     );
   }
