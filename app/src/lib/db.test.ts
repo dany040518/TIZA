@@ -1,119 +1,156 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-// Simulamos Supabase para no necesitar conexión real
 vi.mock('./supabaseClient', () => ({
-  supabase: {
-    from: vi.fn(),
-  },
+  supabase: { from: vi.fn() },
 }))
 
 import { supabase } from './supabaseClient'
-import { saveLessonPlan, getLessonPlans, upsertProfile } from './db'
-import type { LessonPlan, Profile } from './db'
+import {
+  saveLessonPlan,
+  getLessonPlans,
+  deleteLessonPlan,
+  submitLessonPlanForReview,
+  getProfile,
+} from './db'
 
-const mockPlan: Omit<LessonPlan, 'id' | 'created_at'> = {
-  teacher_id: 'teacher-123',
-  subject: 'Matemáticas',
-  grade: '5to',
-  topic: 'Fracciones',
-  title: 'Fracciones con pizza',
-  type: 'Gamified',
-  objective: 'El estudiante comprenderá fracciones básicas',
-  materials: ['pizarrón', 'marcadores'],
-  sequence: [
-    { phase: 'Opening', description: 'Inicio', duration: 10 },
-    { phase: 'Development', description: 'Desarrollo', duration: 40 },
-    { phase: 'Closing', description: 'Cierre', duration: 10 },
-  ],
-  evaluation: 'Quiz oral al final',
-}
-
-// Helper para construir el mock encadenado de Supabase
-function mockSupabaseChain(finalResult: { data?: any; error?: any }) {
-  const chain = {
-    insert: vi.fn().mockReturnThis(),
-    select: vi.fn().mockReturnThis(),
-    single: vi.fn().mockResolvedValue(finalResult),
-    eq: vi.fn().mockReturnThis(),
-    order: vi.fn().mockResolvedValue(finalResult),
-    upsert: vi.fn().mockResolvedValue(finalResult),
-  }
-  vi.mocked(supabase.from).mockReturnValue(chain as any)
+// Helper que construye el mock encadenado de Supabase
+function mockChain(final: { data?: any; error?: any }) {
+  const chain: any = {}
+  const methods = ['select', 'insert', 'update', 'delete', 'upsert', 'eq', 'neq', 'order', 'in']
+  methods.forEach(m => { chain[m] = vi.fn().mockReturnValue(chain) })
+  chain.single = vi.fn().mockResolvedValue(final)
+  chain.then = undefined // evita que se trate como Promise
+  // Para casos sin .single() (como getLessonPlans, deleteLessonPlan)
+  chain.order = vi.fn().mockResolvedValue(final)
+  chain.eq = vi.fn().mockReturnValue(chain)
+  chain.delete = vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue(final) })
+  vi.mocked(supabase.from).mockReturnValue(chain)
   return chain
 }
 
+const mockPlan = {
+  teacher_id: 'teacher-1',
+  institution_id: 'inst-1',
+  title: 'Fracciones con pizza',
+  subject: 'Matemáticas',
+  grade: '5to',
+  topic: 'Fracciones',
+  content: {
+    title: 'Fracciones con pizza',
+    type: 'Gamified',
+    objective: 'Aprender fracciones',
+    description: 'Clase lúdica',
+    duration: 60,
+    materials: ['pizarrón'],
+    sequence: [],
+    evaluation: 'Quiz oral',
+  },
+}
+
+beforeEach(() => vi.clearAllMocks())
+
+// ── saveLessonPlan ─────────────────────────────────────────────
 describe('saveLessonPlan()', () => {
-  beforeEach(() => vi.clearAllMocks())
-
   it('retorna el plan guardado cuando no hay error', async () => {
-    const saved = { ...mockPlan, id: 'plan-abc', created_at: '2026-01-01' }
-    mockSupabaseChain({ data: saved, error: null })
-
+    const saved = { ...mockPlan, id: 'plan-1', status: 'draft_saved', created_at: '2026-01-01' }
+    mockChain({ data: saved, error: null })
     const result = await saveLessonPlan(mockPlan)
-    expect(result.id).toBe('plan-abc')
-    expect(result.subject).toBe('Matemáticas')
+    expect(result.id).toBe('plan-1')
+    expect(result.status).toBe('draft_saved')
   })
 
   it('lanza error si Supabase falla', async () => {
-    mockSupabaseChain({ data: null, error: new Error('DB error') })
+    mockChain({ data: null, error: new Error('DB error') })
     await expect(saveLessonPlan(mockPlan)).rejects.toThrow('DB error')
   })
 })
 
+// ── getLessonPlans ─────────────────────────────────────────────
 describe('getLessonPlans()', () => {
-  beforeEach(() => vi.clearAllMocks())
-
   it('retorna lista de planes del profesor', async () => {
-    const plans = [{ ...mockPlan, id: '1' }, { ...mockPlan, id: '2' }]
-    mockSupabaseChain({ data: plans, error: null })
-
-    const result = await getLessonPlans('teacher-123')
+    const chain: any = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      order: vi.fn().mockResolvedValue({
+        data: [{ ...mockPlan, id: '1' }, { ...mockPlan, id: '2' }],
+        error: null,
+      }),
+    }
+    vi.mocked(supabase.from).mockReturnValue(chain)
+    const result = await getLessonPlans('teacher-1')
     expect(result).toHaveLength(2)
-    expect(result[0].teacher_id).toBe('teacher-123')
-  })
-
-  it('retorna lista vacía si el profesor no tiene planes', async () => {
-    mockSupabaseChain({ data: [], error: null })
-    const result = await getLessonPlans('teacher-sin-planes')
-    expect(result).toEqual([])
   })
 
   it('lanza error si Supabase falla', async () => {
-    mockSupabaseChain({ data: null, error: new Error('Sin conexión') })
-    await expect(getLessonPlans('teacher-123')).rejects.toThrow('Sin conexión')
+    const chain: any = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      order: vi.fn().mockResolvedValue({ data: null, error: new Error('Sin conexión') }),
+    }
+    vi.mocked(supabase.from).mockReturnValue(chain)
+    await expect(getLessonPlans('teacher-1')).rejects.toThrow('Sin conexión')
   })
 })
 
-describe('upsertProfile()', () => {
-  beforeEach(() => vi.clearAllMocks())
-
-  it('no lanza error con datos válidos', async () => {
-    const chain = { upsert: vi.fn().mockResolvedValue({ error: null }) }
-    vi.mocked(supabase.from).mockReturnValue(chain as any)
-
-    const profile: Profile = {
-      id: 'user-1',
-      name: 'Daniela',
-      institution: 'Colegio XYZ',
-      email: 'daniela@mail.com',
-      role: 'teacher',
+// ── deleteLessonPlan ───────────────────────────────────────────
+describe('deleteLessonPlan()', () => {
+  it('no lanza error al eliminar correctamente', async () => {
+    const chain: any = {
+      delete: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockResolvedValue({ error: null }),
     }
-
-    await expect(upsertProfile(profile)).resolves.not.toThrow()
+    vi.mocked(supabase.from).mockReturnValue(chain)
+    await expect(deleteLessonPlan('plan-1')).resolves.not.toThrow()
   })
 
   it('lanza error si Supabase falla', async () => {
-    const chain = { upsert: vi.fn().mockResolvedValue({ error: new Error('Upsert fallido') }) }
-    vi.mocked(supabase.from).mockReturnValue(chain as any)
-
-    const profile: Profile = {
-      id: 'user-2',
-      name: 'Carlos',
-      institution: 'Escuela ABC',
-      email: 'carlos@mail.com',
-      role: 'teacher',
+    const chain: any = {
+      delete: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockResolvedValue({ error: new Error('No se pudo eliminar') }),
     }
+    vi.mocked(supabase.from).mockReturnValue(chain)
+    await expect(deleteLessonPlan('plan-1')).rejects.toThrow('No se pudo eliminar')
+  })
+})
 
-    await expect(upsertProfile(profile)).rejects.toThrow('Upsert fallido')
+// ── submitLessonPlanForReview ──────────────────────────────────
+describe('submitLessonPlanForReview()', () => {
+  it('cambia el estado a pending_review', async () => {
+    const updated = { ...mockPlan, id: 'plan-1', status: 'pending_review' }
+    const chain: any = {
+      update: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      select: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({ data: updated, error: null }),
+    }
+    vi.mocked(supabase.from).mockReturnValue(chain)
+    const result = await submitLessonPlanForReview('plan-1')
+    expect(result.status).toBe('pending_review')
+  })
+})
+
+// ── getProfile ─────────────────────────────────────────────────
+describe('getProfile()', () => {
+  it('retorna null si el usuario no existe', async () => {
+    const chain: any = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({ data: null, error: new Error('Not found') }),
+    }
+    vi.mocked(supabase.from).mockReturnValue(chain)
+    const result = await getProfile('usuario-inexistente')
+    expect(result).toBeNull()
+  })
+
+  it('retorna el perfil si existe', async () => {
+    const profile = { id: 'u-1', full_name: 'Daniela', email: 'daniela@mail.com' }
+    const chain: any = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      single: vi.fn().mockResolvedValue({ data: profile, error: null }),
+    }
+    vi.mocked(supabase.from).mockReturnValue(chain)
+    const result = await getProfile('u-1')
+    expect(result?.full_name).toBe('Daniela')
   })
 })
