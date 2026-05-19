@@ -1,142 +1,121 @@
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { 
-  Home, 
-  Calendar, 
-  Users, 
-  BarChart2, 
-  HelpCircle, 
-  LogOut, 
-  Search, 
-  Bell, 
-  Settings,
-  Plus
-} from 'lucide-react';
-import { signOut } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
-import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/hooks/useAuth';
+import { useProfile } from '@/hooks/useProfile';
+import { Mark, Star } from '@/components/tiza/Mark';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
 }
 
+const teacherTabs = [
+  { to: '/dashboard',  label: 'Panel',          emoji: '✿', bg: 'var(--color-blush)'  },
+  { to: '/planning',   label: 'Planeación',     emoji: '✎', bg: 'var(--color-butter)' },
+  { to: '/my-plans',   label: 'Mis Planes',     emoji: '✦', bg: 'var(--color-mint)'   },
+  { to: '/classes',    label: 'Clases',         emoji: '✤', bg: 'var(--color-lilac)'  },
+] as const;
+
+const coordinatorTabs = [
+  { to: '/coordinator', label: 'Revisión', emoji: '✿', bg: 'var(--color-blush)' },
+] as const;
+
+const adminTabs = [
+  { to: '/admin', label: 'Instituciones', emoji: '✦', bg: 'var(--color-lilac)' },
+] as const;
+
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
-  const { user } = useAuth();
+  const { displayName } = useAuth();
+  const { profile } = useProfile();
   const location = useLocation();
   const navigate = useNavigate();
 
-  const initials = user?.displayName 
-    ? user.displayName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
-    : 'U';
+  const tabs =
+    profile?.role === 'admin'       ? adminTabs :
+    profile?.role === 'coordinator' ? coordinatorTabs :
+    teacherTabs;
+
+  const initials = displayName
+    ? displayName.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
+    : 'T';
 
   const handleLogout = async () => {
-    try {
-      await signOut(auth);
-      navigate('/login');
-    } catch (err) {
-      console.error("Logout error:", err);
-    }
+    await supabase.auth.signOut();
+    navigate('/login');
   };
 
-  const menuItems = [
-    { icon: Home, label: 'Inicio', path: '/dashboard' },
-    { icon: Calendar, label: 'Planeación', path: '/planning' },
-//    { icon: Users, label: 'Asistencia', path: '/attendance' },
-//    { icon: BarChart2, label: 'Informes', path: '/reports' },
-  ];
-
   return (
-    <div className="flex h-screen bg-background text-text-main font-sans">
-      {/* Sidebar */}
-      <aside className="w-[240px] bg-surface border-r border-border flex flex-col py-6 shrink-0">
-        <div className="logo px-6 pb-8 flex items-center gap-2 text-xl font-bold text-primary">
-          <div className="w-6 h-6 bg-primary rounded flex items-center justify-center text-white text-sm">T</div>
-          TIZA
-        </div>
-        
-        <nav className="flex flex-col">
-          {menuItems.map((item) => (
-            <Link
-              key={item.path}
-              to={item.path}
-              className={cn(
-                "nav-item px-6 py-3 flex items-center gap-3 text-sm font-medium transition-all border-l-3 border-transparent",
-                location.pathname === item.path 
-                  ? "bg-[#eff6ff] text-primary border-primary" 
-                  : "text-text-muted hover:bg-slate-50 hover:text-text-main"
-              )}
-            >
-              <item.icon className="w-5 h-5" />
-              {item.label}
-            </Link>
-          ))}
+    <div className="min-h-screen" style={{ color: 'var(--color-plum)' }}>
+
+      {/* ── Top bar ──────────────────────────────────────────── */}
+      <header className="mx-auto max-w-[1320px] px-6 md:px-10 pt-7 pb-4 flex flex-wrap items-center justify-between gap-4">
+
+        <Mark to={
+          profile?.role === 'admin'       ? '/admin' :
+          profile?.role === 'coordinator' ? '/coordinator' :
+          '/dashboard'
+        } />
+
+        {/* Tab navigation */}
+        <nav
+          className="sticker flex items-center gap-1.5 p-1.5"
+          style={{ boxShadow: '3px 3px 0 var(--color-plum)' }}
+        >
+          {tabs.map((t) => {
+            const active = location.pathname === t.to;
+            return (
+              <Link
+                key={t.to}
+                to={t.to}
+                className="px-4 py-2 rounded-full no-underline font-semibold text-[14px] flex items-center gap-2 transition-all"
+                style={{
+                  background: active ? t.bg : 'transparent',
+                  color: 'var(--color-plum)',
+                }}
+              >
+                <span aria-hidden style={{ color: 'var(--color-orange)' }}>{t.emoji}</span>
+                {t.label}
+              </Link>
+            );
+          })}
         </nav>
-        <div className="mt-auto px-6 space-y-6">
-          {/*
-          <Button className="w-full bg-primary hover:bg-primary-dark text-white rounded-md py-6 font-semibold flex items-center justify-center gap-2">
-            <Plus className="w-5 h-5" />
-            Nueva Clase
-          </Button>
-          */}
 
-          <div className="space-y-1">
-            {/*
-            <button className="flex items-center gap-3 px-0 py-2 w-full text-text-muted hover:text-text-main text-sm font-medium transition-colors">
-              <HelpCircle className="w-5 h-5" />
-              Ayuda
-            </button>
-            */}
-            <button 
-              onClick={handleLogout}
-              className="flex items-center gap-3 px-0 py-2 w-full text-text-muted hover:text-text-main text-sm font-medium transition-colors"
+        {/* User info + logout */}
+        <div className="flex items-center gap-3">
+          <Link
+            to="/account"
+            className="hidden md:flex items-center gap-3 chip no-underline transition-opacity hover:opacity-80"
+            style={{ background: 'var(--color-paper)' }}
+          >
+            <span
+              className="rounded-full font-bold text-[12px] flex items-center justify-center shrink-0"
+              style={{
+                width: 28, height: 28,
+                background: 'var(--color-butter)',
+                border: '2px solid var(--color-plum)',
+              }}
             >
-              <LogOut className="w-5 h-5" />
-              Cerrar Sesión
-            </button>
-          </div>
-        </div>
-      </aside>
-
-      {/* Main Content */}
-      <main className="flex-1 flex flex-col overflow-hidden p-8 gap-6">
-        {/* Topbar */}
-        <header className="flex items-center justify-between shrink-0">
-          <div>
-            <h1 className="text-2xl font-bold text-text-main">
-              {location.pathname === '/dashboard' ? 'Panel de Control' : 'Laboratorio de Planeación'}
-            </h1>
-            <p className="text-text-muted text-sm">Preparación de clases impulsada por IA</p>
-          </div>
-
-          <div className="flex items-center gap-6">
-            <div className="relative w-64">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
-              <Input 
-                placeholder="Buscar..." 
-                className="pl-10 bg-surface border-border rounded-md h-10 text-sm"
-              />
+              {initials}
+            </span>
+            <div className="leading-tight">
+              <div className="font-semibold text-[13px]">{displayName || 'Docente'}</div>
+              <div className="text-[11px]" style={{ color: 'var(--color-mute)' }}>Mi cuenta</div>
             </div>
+          </Link>
 
-            <div className="user-profile flex items-center gap-3 pl-6 border-l border-border">
-              <div className="text-right">
-                <p className="text-sm font-semibold text-text-main">{user?.displayName || 'Usuario'}</p>
-                <p className="text-xs text-text-muted">Docente</p>
-              </div>
-              <Avatar className="w-10 h-10 bg-primary text-white flex items-center justify-center font-semibold rounded-full">
-                <AvatarFallback className="bg-primary text-white">{initials}</AvatarFallback>
-              </Avatar>
-            </div>
-          </div>
-        </header>
-
-        {/* Page Content */}
-        <div className="flex-1 overflow-auto">
-          {children}
+          <button
+            className="btn-chunky btn-chunky-blush md:hidden"
+            style={{ padding: '10px 16px', fontSize: 13 }}
+            onClick={handleLogout}
+          >
+            <Star size={14} fill="var(--color-orange)" />
+            Salir
+          </button>
         </div>
+      </header>
+
+      <main>
+        {children}
       </main>
     </div>
   );

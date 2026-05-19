@@ -1,0 +1,161 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-display: "Fraunces", "Recoleta", "DM Serif Display", Georgia, serif;
+  --font-sans: "Plus Jakarta Sans", "Inter", system-ui, sans-serif;
+  --font-hand: "Caveat", "Comic Sans MS", cursive;
+
+  --radius-sm: 10px;
+  --radius-md: 16px;
+  --radius-lg: 24px;
+  --radius-xl: 32px;
+  --radius-2xl: 40px;
+  --radius-pill: 999px;
+
+  --color-background: var(--cream);
+  --color-foreground: var(--plum);
+  --color-cream: var(--cream);
+  --color-paper: var(--paper);
+  --color-plum: var(--plum);
+  --color-mute: var(--mute);
+  --color-blush: var(--blush);
+  --color-orange: var(--orange);
+  --color-butter: var(--butter);
+  --color-mint: var(--mint);
+  --color-lilac: var(--lilac);
+  --color-sky: var(--sky);
+
+  --color-card: var(--paper);
+  --color-card-foreground: var(--plum);
+  --color-popover: var(--paper);
+  --color-popover-foreground: var(--plum);
+  --color-primary: var(--plum);
+  --color-primary-foreground: var(--cream);
+  --color-secondary: var(--blush);
+  --color-secondary-foreground: var(--plum);
+  --color-muted: var(--cream-2);
+  --color-muted-foreground: var(--mute);
+  --color-accent: var(--butter);
+  --color-accent-foreground: var(--plum);
+  --color-destructive: var(--orange);
+  --color-destructive-foreground: var(--cream);
+  --color-border: var(--plum);
+  --color-input: var(--plum);
+  --color-ring: var(--orange);
+}
+
+:root {
+  --cream: oklch(0.975 0.022 85);          /* #FFF6EC warm paper */
+  --cream-2: oklch(0.95 0.03 85);
+  --paper: oklch(0.99 0.012 85);           /* off-white cards */
+  --plum: oklch(0.24 0.06 340);            /* warm dark — not black */
+  --mute: oklch(0.5 0.04 340);
+  --blush: oklch(0.91 0.06 350);           /* #FCDDF1 */
+  --orange: oklch(0.7 0.19 38);            /* #FA6B39 */
+  --butter: oklch(0.9 0.13 95);            /* warm yellow */
+  --mint: oklch(0.88 0.08 155);            /* soft green */
+  --lilac: oklch(0.85 0.07 305);           /* soft purple */
+  --sky: oklch(0.88 0.06 230);             /* soft blue */
+  --radius: 24px;
+  --shadow-sticker: 4px 4px 0 var(--plum);
+  --shadow-sticker-lg: 6px 6px 0 var(--plum);
+}
+
+@layer base {
+  * { border-color: var(--color-plum); }
+  html, body {
+    background-color: var(--color-cream);
+    color: var(--color-plum);
+    font-family: var(--font-sans);
+    font-weight: 500;
+    -webkit-font-smoothing: antialiased;
+  }
+  body {
+    font-size: 16px;
+    line-height: 1.5;
+    background-image:
+      radial-gradient(circle at 12% 8%, oklch(0.91 0.06 350 / 0.35) 0, transparent 38%),
+      radial-gradient(circle at 92% 18%, oklch(0.9 0.13 95 / 0.28) 0, transparent 35%),
+      radial-gradient(circle at 88% 92%, oklch(0.88 0.08 155 / 0.25) 0, transparent 40%),
+      radial-gradient(circle at 8% 88%, oklch(0.85 0.07 305 / 0.25) 0, transparent 38%);
+    background-attachment: fixed;
+  }
+  ::selection { background: var(--color-orange); color: var(--color-cream); }
+
+  .font-display {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-variation-settings: "SOFT" 100, "WONK" 0, "opsz" 144;
+    letter-spacing: -0.02em;
+    line-height: 0.95;
+  }
+  .font-hand { font-family: var(--font-hand); font-weight: 500; }
+
+  .label {
+    font-family: var(--font-sans);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  /* Tactile sticker cards */
+  .sticker {
+    background: var(--color-paper);
+    border: 2px solid var(--color-plum);
+    border-radius: 24px;
+    box-shadow: var(--shadow-sticker);
+    transition: transform 200ms ease, box-shadow 200ms ease;
+  }
+  .sticker-lg { border-radius: 32px; box-shadow: var(--shadow-sticker-lg); border-width: 2.5px; }
+  .sticker-hover:hover { transform: translate(-2px, -2px); box-shadow: 6px 6px 0 var(--color-plum); }
+
+  /* Chunky pill button */
+  .btn-chunky {
+    display: inline-flex; align-items: center; gap: 10px;
+    padding: 14px 22px; border-radius: 999px;
+    font-family: var(--font-sans); font-weight: 700; font-size: 15px;
+    line-height: 1; border: 2px solid var(--color-plum); cursor: pointer;
+    background: var(--color-paper); color: var(--color-plum);
+    box-shadow: 4px 4px 0 var(--color-plum);
+    transition: transform 150ms ease, box-shadow 150ms ease;
+  }
+  .btn-chunky:hover { transform: translate(-2px, -2px); box-shadow: 6px 6px 0 var(--color-plum); }
+  .btn-chunky:active { transform: translate(2px, 2px); box-shadow: 0 0 0 var(--color-plum); }
+  .btn-chunky-primary { background: var(--color-orange); color: var(--color-cream); }
+  .btn-chunky-blush { background: var(--color-blush); }
+  .btn-chunky-butter { background: var(--color-butter); }
+  .btn-chunky-mint { background: var(--color-mint); }
+  .btn-chunky-plum { background: var(--color-plum); color: var(--color-cream); }
+  .btn-chunky-ghost { background: transparent; box-shadow: none; }
+  .btn-chunky-ghost:hover { transform: none; box-shadow: 4px 4px 0 var(--color-plum); }
+
+  /* Pill tag */
+  .chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 14px; border-radius: 999px;
+    border: 2px solid var(--color-plum);
+    font-weight: 600; font-size: 13px;
+    background: var(--color-paper);
+  }
+
+  /* Notebook-paper section */
+  .notebook {
+    background:
+      repeating-linear-gradient(to bottom, transparent 0, transparent 31px, oklch(0.85 0.07 305 / 0.4) 31px, oklch(0.85 0.07 305 / 0.4) 32px),
+      var(--color-paper);
+  }
+
+  /* Wobbly hand-drawn underline */
+  .squiggle {
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 8'><path d='M0 4 Q 12 0 25 4 T 50 4 T 75 4 T 100 4' fill='none' stroke='%23FA6B39' stroke-width='2.5' stroke-linecap='round'/></svg>");
+    background-repeat: repeat-x;
+    background-position: 0 100%;
+    background-size: 100px 8px;
+    padding-bottom: 8px;
+  }
+}
