@@ -8,6 +8,19 @@
 
 El sistema educativo colombiano opera mayoritariamente con planeaciones en Word, asistencia en papel, notas en Excel y boletines digitados manualmente. El docente promedio gestiona entre 3 y 6 grupos con 30–45 estudiantes cada uno, lo que genera una carga administrativa que compite directamente con el tiempo de preparación pedagógica.
 
+### Evidencia de la investigación
+
+Los siguientes gráficos provienen de la encuesta inicial aplicada a 23 docentes colombianos (método: Google Forms, análisis mixto cuanti-cuali). Las imágenes se encuentran en [`../Figures/`](../Figures/).
+
+![Distribución de nivel de estrés docente](../Figures/estres.png)
+*Gráfica: distribución del nivel de estrés reportado por docentes encuestados.*
+
+![Comparación colegio público vs privado](../Figures/comparacion.png)
+*Gráfica: carga administrativa comparada entre sector público y privado.*
+
+![Matriz impacto–factibilidad](../Figures/matriz_impacto.png)
+*Matriz de priorización de soluciones por impacto y factibilidad.*
+
 ---
 
 ## Matriz Problema → Solución → Evidencia

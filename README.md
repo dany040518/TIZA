@@ -93,6 +93,7 @@ pnpm test       # vitest
 | [Flujo de navegación](docs/02_investigacion/diagramas/flujo-navegacion.md) | Diagrama completo de rutas por rol, flujo offline y mapa de páginas |
 | [Maquetas y sistema de diseño](docs/03_diseno/maquetas.md) | Paleta OKLCH, tipografía, componentes, resultados de pruebas con usuarios |
 | [Dirección creativa](docs/03_diseno/TIZA_CREATIVE_DIRECTION.md) | Personalidad de marca, principios de diseño emocional, especificaciones visuales |
+| [Figuras del documento académico](docs/Figures/README.md) | Directorio de imágenes referenciadas en el documento IEEE (wireframes, gráficas de investigación, user flow) |
 
 ### Arquitectura
 

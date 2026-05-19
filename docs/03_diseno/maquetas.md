@@ -1,5 +1,7 @@
 # Maquetas y Sistema de Diseño — TIZA
 
+> **Nota sobre evolución del sistema de diseño:** El documento académico del proyecto (fase de investigación y diseño) describe un UI Kit inicial con fuente **Inter**, paleta en códigos **Hex** (#2563EB, #7C3AED, etc.) y componentes de **Shadcn/UI**. Esos elementos corresponden a la etapa de ideación. La implementación final en producción usa **Plus Jakarta Sans**, paleta **OKLCH** y componentes propios del sistema TIZA (`.sticker`, `.btn-chunky`, etc.), descritos en este documento y en [`TIZA_CREATIVE_DIRECTION.md`](TIZA_CREATIVE_DIRECTION.md).
+
 ---
 
 ## Herramienta de diseño
@@ -61,21 +63,32 @@ El sistema de diseño está documentado en detalle en [`TIZA_CREATIVE_DIRECTION.
 
 ---
 
-## Pantallas principales
+## Wireframes
+
+> Las imágenes de wireframes se encuentran en [`../Figures/`](../Figures/). Agrégalas a ese directorio con los nombres exactos indicados.
 
 ### Login y Register
+
+![Wireframe Login](../Figures/wireframe_login.jpeg)
+
 - Fondo con gradientes radiales suaves en las 4 esquinas
 - Logo TIZA centrado con tipografía Caveat
 - Formulario como card `.sticker`
 - Botón "Continuar" como `.btn-chunky-primary`
 
 ### Dashboard (docente)
+
+![Wireframe Dashboard](../Figures/wireframe_dashboard.jpeg)
+
 - Grid 1 columna (móvil) / 2 columnas `1fr 360px` (desktop)
 - Tarjetas de tareas con color de acento por contexto
 - Calendario semanal con día actual resaltado en naranja
 - Greeting personalizado con nombre del docente
 
 ### Planning (planeación con IA)
+
+![Wireframe Planeación](../Figures/wireframe_planeacion.jpeg)
+
 - Paso 1: textarea grande para describir la sesión
 - Paso 2: 3 tarjetas de ideas generadas (seleccionable)
 - Paso 3: formulario detallado editable por secciones

@@ -16,7 +16,42 @@ TIZA define tres roles con permisos y flujos diferenciados:
 
 ## Perfil principal: Docente colombiano
 
-### Datos demográficos
+### Buyer Persona — Marcela Rodríguez
+
+> Persona derivada de la investigación primaria (encuesta a 23 docentes + 3 entrevistas en profundidad). Referencia completa en el documento académico del proyecto.
+
+| Atributo | Valor |
+|----------|-------|
+| **Nombre** | Marcela Rodríguez |
+| **Edad** | 34 años |
+| **Cargo** | Docente de primaria, jornada única |
+| **Institución** | Colegio público, municipio de Cundinamarca |
+| **Experiencia** | 8 años frente a grupo |
+| **Grupos a cargo** | 4 grupos · ~35 estudiantes c/u |
+| **Dispositivo principal** | Smartphone Android Samsung Galaxy A14 |
+| **Dispositivo secundario** | Portátil Windows de la institución (compartido) |
+| **Conexión** | WiFi escolar intermitente + plan de datos limitado |
+| **Nivel digital** | Básico-intermedio — WhatsApp, Google Forms, YouTube |
+| **Relación con IA** | No ha usado herramientas de IA generativa antes de TIZA |
+
+**Motivaciones:**
+- Reducir el tiempo que dedica a papeleo y formatos institucionales
+- Tener sus registros disponibles desde el celular sin depender del portátil
+- Generar planeaciones de clase en menos tiempo sin sacrificar calidad pedagógica
+- No perder datos cuando no hay internet en el salón
+
+**Frustraciones:**
+- *"Gasto más tiempo llenando formatos que preparando mis clases"*
+- *"Pierdo mis registros cuando se daña el computador del colegio"*
+- *"La plataforma institucional no funciona desde el celular"*
+- *"Tengo que escribir los mismos datos en tres formatos distintos"*
+
+**Escenario de uso:**
+> Marcela llega al colegio a las 7:40 am. Abre TIZA en su Samsung A14, registra la asistencia de 35 estudiantes en 45 segundos mientras los niños sacan sus cuadernos. En el descanso, describe el tema de la próxima clase y obtiene tres propuestas de planeación generadas por IA; selecciona una, la ajusta y la guarda. El viernes exporta el informe del bimestre en PDF sin buscar ningún archivo de Excel.
+
+---
+
+### Datos demográficos del segmento
 
 | Atributo | Rango / Valor típico |
 |----------|---------------------|
@@ -38,25 +73,6 @@ TIZA define tres roles con permisos y flujos diferenciados:
 | Apps habituales | WhatsApp, Google Forms, Excel, YouTube |
 | Nivel digital | Básico-intermedio — usa apps cotidianas con fluidez, pero evita plataformas complejas |
 | Relación con IA | Mayoría no ha usado herramientas de IA generativa antes de TIZA |
-
-### Motivaciones
-
-- Reducir el tiempo que dedica a papeleo y formatos
-- Tener sus registros disponibles desde cualquier dispositivo
-- Presentar informes institucionales rápidamente
-- No depender de la conexión a internet en el salón de clase
-
-### Frustraciones (Pain points)
-
-- "Gasto más tiempo llenando formatos que preparando clases"
-- "Pierdo mis registros cuando se daña el computador"
-- "La plataforma del colegio es difícil y no funciona desde el celular"
-- "Tengo que escribir los mismos datos en 3 formatos distintos"
-- "A veces no hay internet en el colegio"
-
-### Escenario típico de uso
-
-> La profesora Valentina tiene clase de Ciencias Naturales con 5.° a las 8 am. Llega al colegio, abre TIZA en su celular, registra la asistencia de 32 estudiantes en 45 segundos mientras los estudiantes sacan sus cuadernos. En el descanso, genera el esquema de la próxima clase sobre "ecosistemas" en menos de un minuto. El viernes exporta el boletín del bimestre en PDF directamente desde la plataforma.
 
 ---
 

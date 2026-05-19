@@ -1,5 +1,7 @@
 # Historias de Usuario · Requisitos Funcionales · Requisitos No Funcionales
 
+> **Nota sobre versiones:** El documento académico del proyecto incluye un conjunto inicial de HU-01 a HU-10 y RF-01 a RF-15 elaborados durante la fase de investigación. Este documento es la expansión completa y definitiva: 30 HU + 30 RF + 10 RNF con criterios Gherkin y matriz de trazabilidad. En caso de discrepancia entre ambos documentos, prevalece este.
+
 ## Historias de Usuario
 
 Este documento recoge las 30 historias de usuario de Tiza, cubriendo cada acción que un docente realiza en la plataforma desde el registro hasta el uso diario. El actor en todas las historias es 'Docente', sin especificación de nivel educativo ni perfil tecnológico, para que la plataforma sirva a cualquier docente colombiano.

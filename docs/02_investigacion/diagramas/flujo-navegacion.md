@@ -1,5 +1,9 @@
 # Diagrama de Navegación — TIZA
 
+> **Diagrama visual:** El flujo de usuario completo (10 pasos, perspectiva del docente principal) está disponible como imagen en [`../../Figures/tiza_userflow.png`](../../Figures/tiza_userflow.png). Los diagramas ASCII a continuación son la representación textual del mismo flujo.
+
+![Flujo de usuario TIZA](../../Figures/tiza_userflow.png)
+
 ---
 
 ## Flujo general por rol
