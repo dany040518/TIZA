@@ -31,10 +31,6 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
-      'workbox-window': path.resolve(
-        __dirname,
-        '../node_modules/.pnpm/workbox-window@7.4.1/node_modules/workbox-window',
-      ),
     },
   },
   server: {
