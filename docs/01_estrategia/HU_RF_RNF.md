@@ -1,20 +1,8 @@
-# TIZA
-
-**Plataforma de Gestión Docente con IA**
-
-**Historias de Usuario · Requisitos Funcionales · Requisitos No Funcionales**
-
-Capstone Design Project — 2025
-
-ODS 4 · Educación de Calidad · Colombia
-
----
+# Historias de Usuario · Requisitos Funcionales · Requisitos No Funcionales
 
 ## Historias de Usuario
 
 Este documento recoge las 30 historias de usuario de Tiza, cubriendo cada acción que un docente realiza en la plataforma desde el registro hasta el uso diario. El actor en todas las historias es 'Docente', sin especificación de nivel educativo ni perfil tecnológico, para que la plataforma sirva a cualquier docente colombiano.
-
----
 
 ### Transversal — Autenticación y Cuenta
 

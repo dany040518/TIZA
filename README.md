@@ -43,7 +43,7 @@ This creates:
 
 ## Run Locally
 
-**Prerequisites:** Node.js 18+
+**Prerequisites:** Node.js 20+
 
 ```bash
 cd app
