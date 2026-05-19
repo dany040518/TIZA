@@ -13,6 +13,7 @@ import type {
   ValidateInviteCodeResult,
   PlanIdea,
   PlanStatus,
+  BugReport,
 } from '@/types';
 
 export type { LessonPlan };
@@ -400,4 +401,10 @@ export async function createInviteCode(institutionId: string, code: string, maxU
     .single();
   if (error) throw error;
   return data as InviteCode;
+}
+
+// ── Bug Reports ────────────────────────────────────────────────
+export async function submitBugReport(report: Omit<BugReport, 'id' | 'created_at'>) {
+  const { error } = await supabase.from('bug_reports').insert(report);
+  if (error) throw error;
 }

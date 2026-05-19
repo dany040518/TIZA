@@ -1,0 +1,40 @@
+name: Supabase — Daily Backup
+
+on:
+  schedule:
+    - cron: '0 3 * * *'   # 03:00 UTC every day (10pm Colombia)
+  workflow_dispatch:       # allow manual trigger
+
+jobs:
+  backup:
+    name: pg_dump to GitHub Artifact
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y postgresql-client
+
+      - name: Run pg_dump
+        env:
+          PGPASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          pg_dump \
+            --host=${{ secrets.SUPABASE_DB_HOST }} \
+            --port=5432 \
+            --username=postgres \
+            --dbname=postgres \
+            --format=custom \
+            --no-password \
+            --file=backup-$(date +%Y%m%d-%H%M%S).dump
+
+      - name: Upload backup artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: supabase-backup-${{ github.run_number }}
+          path: '*.dump'
+          retention-days: 30

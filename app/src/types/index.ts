@@ -146,3 +146,16 @@ export interface ValidateInviteCodeResult {
   institution_type: string | null;
   is_valid: boolean;
 }
+
+export type BugCategory = 'ui' | 'funcionalidad' | 'datos' | 'rendimiento' | 'otro';
+
+export interface BugReport {
+  id?: string;
+  user_id?: string;
+  title: string;
+  description: string;
+  category: BugCategory;
+  page_url?: string;
+  user_agent?: string;
+  created_at?: string;
+}
