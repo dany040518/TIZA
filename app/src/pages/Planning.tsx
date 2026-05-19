@@ -1,30 +1,14 @@
-import { Sparkles, FileDown, X } from "lucide-react";
+import { Sparkles, FileDown, X, BookmarkCheck, Check } from "lucide-react";
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useAuth } from "@/hooks/useAuth";
+import { useProfile } from "@/hooks/useProfile";
 import { saveLessonPlan } from "@/lib/db";
-import { generateLessonPlan } from "@/services/geminiService";
+import { generateLessonPlan } from "@/services/aiService";
 import DashboardLayout from "../components/layouts/DashboardLayout";
 import html2pdf from "html2pdf.js";
 import { Star, Squiggle } from "@/components/tiza/Mark";
-
-// ── Types ────────────────────────────────────────────────────
-interface PlanPhase {
-  phase: string;
-  description: string;
-  duration: number;
-}
-
-interface PlanIdea {
-  title: string;
-  type: string;
-  objective: string;
-  description: string;
-  duration: number;
-  materials: string[];
-  sequence: PlanPhase[];
-  evaluation: string;
-}
+import type { PlanIdea } from "@/types";
 
 // ── Phase accent colors ──────────────────────────────────────
 const phaseColors = [
@@ -42,6 +26,7 @@ const ideaColors = [
 
 export default function Planning() {
   const { user } = useAuth();
+  const { profile } = useProfile();
 
   const [subject, setSubject]       = useState("");
   const [grade, setGrade]           = useState("");
@@ -51,6 +36,8 @@ export default function Planning() {
   const [ideas, setIdeas]           = useState<PlanIdea[]>([]);
   const [selected, setSelected]     = useState<PlanIdea | null>(null);
   const [activePlan, setActivePlan] = useState<PlanIdea | null>(null);
+  const [saving, setSaving]         = useState(false);
+  const [saved, setSaved]           = useState(false);
 
   const subjects = [
     "Matemáticas", "Ciencias Naturales", "Lengua/Español",
@@ -65,24 +52,12 @@ export default function Planning() {
     setIdeas([]);
     setSelected(null);
     setActivePlan(null);
+    setSaved(false);
 
     try {
       const result = await generateLessonPlan(subject, grade, topic, context);
       if (result?.ideas) {
         setIdeas(result.ideas);
-
-        if (user && result.ideas[0]) {
-          saveLessonPlan({
-            teacher_id: user.id,
-            subject, grade, topic,
-            title:      result.ideas[0].title,
-            type:       result.ideas[0].type,
-            objective:  result.ideas[0].objective,
-            materials:  result.ideas[0].materials ?? [],
-            sequence:   result.ideas[0].sequence ?? [],
-            evaluation: result.ideas[0].evaluation,
-          }).catch(console.error);
-        }
       }
     } catch (err) {
       console.error("Generation error:", err);
@@ -91,23 +66,33 @@ export default function Planning() {
     }
   };
 
-  const handleUsePlan = async (idea: PlanIdea) => {
+  const handleUsePlan = (idea: PlanIdea) => {
+    setSaved(false);
     setActivePlan(idea);
     setTimeout(() => {
       document.getElementById("plan-panel")?.scrollIntoView({ behavior: "smooth" });
     }, 80);
+  };
 
-    if (user) {
-      saveLessonPlan({
-        teacher_id: user.id,
-        subject, grade, topic,
-        title:      idea.title,
-        type:       idea.type,
-        objective:  idea.objective,
-        materials:  idea.materials ?? [],
-        sequence:   idea.sequence ?? [],
-        evaluation: idea.evaluation,
-      }).catch(console.error);
+  const handleSaveLessonPlan = async () => {
+    if (!user || !activePlan) return;
+    setSaving(true);
+    try {
+      await saveLessonPlan({
+        teacher_id:     user.id,
+        institution_id: profile?.institution_id ?? null,
+        title:          activePlan.title,
+        subject,
+        grade,
+        topic,
+        content:        activePlan,
+      });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    } catch (err) {
+      console.error("Save error:", err);
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -117,10 +102,10 @@ export default function Planning() {
     const clone = el.cloneNode(true) as HTMLElement;
     clone.style.background = "#ffffff";
     clone.style.color = "#000000";
-    clone.querySelectorAll("*").forEach((n: any) => {
-      n.style.backgroundColor = "#ffffff";
-      n.style.color = "#000000";
-      n.style.borderColor = "#e5e7eb";
+    clone.querySelectorAll("*").forEach((n: Element) => {
+      (n as HTMLElement).style.backgroundColor = "#ffffff";
+      (n as HTMLElement).style.color = "#000000";
+      (n as HTMLElement).style.borderColor = "#e5e7eb";
     });
     html2pdf()
       .from(clone)
@@ -157,9 +142,8 @@ export default function Planning() {
 
           {/* LEFT: Input canvas */}
           <div>
-            <div
-              className="sticker sticker-lg notebook p-7 space-y-6 sticky top-4"
-            >
+            <div className="sticker sticker-lg notebook p-7 space-y-6 sticky top-4">
+
               {/* Topic */}
               <div>
                 <div className="label mb-2" style={{ color: 'var(--color-mute)' }}>Tema principal</div>
@@ -276,7 +260,7 @@ export default function Planning() {
               </div>
             )}
 
-            {/* Loading */}
+            {/* Loading skeleton */}
             {loading && (
               <div
                 className="sticker sticker-lg p-8 space-y-4"
@@ -449,7 +433,22 @@ export default function Planning() {
                     </span>
                   )}
                 </div>
+
                 <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleSaveLessonPlan}
+                    disabled={saving || saved}
+                    className="btn-chunky btn-chunky-primary"
+                    style={{ padding: '8px 14px', fontSize: 12 }}
+                  >
+                    {saved ? (
+                      <><Check className="w-3.5 h-3.5" /> Guardada</>
+                    ) : saving ? (
+                      <>Guardando…</>
+                    ) : (
+                      <><BookmarkCheck className="w-3.5 h-3.5" /> Guardar planeación</>
+                    )}
+                  </button>
                   <button
                     onClick={handleDownloadPDF}
                     className="btn-chunky"

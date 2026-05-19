@@ -25,9 +25,12 @@ export function useAuth() {
     return () => subscription.unsubscribe()
   }, [])
 
-  // Supabase stores display name in user_metadata
+  // full_name for email signups; name for Google OAuth
   const displayName: string | null =
-    user?.user_metadata?.full_name ?? user?.email ?? null
+    user?.user_metadata?.full_name ??
+    user?.user_metadata?.name ??
+    user?.email ??
+    null
 
   return { user, session, loading, displayName }
 }

@@ -2,21 +2,38 @@ import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/hooks/useAuth';
+import { useProfile } from '@/hooks/useProfile';
 import { Mark, Star } from '@/components/tiza/Mark';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
 }
 
-const tabs = [
-  { to: '/dashboard',  label: 'Panel',      emoji: '✿', bg: 'var(--color-blush)'  },
-  { to: '/planning',   label: 'Planeación', emoji: '✎', bg: 'var(--color-butter)' },
+const teacherTabs = [
+  { to: '/dashboard',  label: 'Panel',          emoji: '✿', bg: 'var(--color-blush)'  },
+  { to: '/planning',   label: 'Planeación',     emoji: '✎', bg: 'var(--color-butter)' },
+  { to: '/my-plans',   label: 'Mis Planes',     emoji: '✦', bg: 'var(--color-mint)'   },
+  { to: '/classes',    label: 'Clases',         emoji: '✤', bg: 'var(--color-lilac)'  },
+] as const;
+
+const coordinatorTabs = [
+  { to: '/coordinator', label: 'Revisión', emoji: '✿', bg: 'var(--color-blush)' },
+] as const;
+
+const adminTabs = [
+  { to: '/admin', label: 'Instituciones', emoji: '✦', bg: 'var(--color-lilac)' },
 ] as const;
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const { displayName } = useAuth();
+  const { profile } = useProfile();
   const location = useLocation();
   const navigate = useNavigate();
+
+  const tabs =
+    profile?.role === 'admin'       ? adminTabs :
+    profile?.role === 'coordinator' ? coordinatorTabs :
+    teacherTabs;
 
   const initials = displayName
     ? displayName.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
@@ -33,7 +50,11 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       {/* ── Top bar ──────────────────────────────────────────── */}
       <header className="mx-auto max-w-[1320px] px-6 md:px-10 pt-7 pb-4 flex flex-wrap items-center justify-between gap-4">
 
-        <Mark to="/dashboard" />
+        <Mark to={
+          profile?.role === 'admin'       ? '/admin' :
+          profile?.role === 'coordinator' ? '/coordinator' :
+          '/dashboard'
+        } />
 
         {/* Tab navigation */}
         <nav
@@ -61,8 +82,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
         {/* User info + logout */}
         <div className="flex items-center gap-3">
-          <div
-            className="hidden md:flex items-center gap-3 chip"
+          <Link
+            to="/account"
+            className="hidden md:flex items-center gap-3 chip no-underline transition-opacity hover:opacity-80"
             style={{ background: 'var(--color-paper)' }}
           >
             <span
@@ -77,15 +99,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             </span>
             <div className="leading-tight">
               <div className="font-semibold text-[13px]">{displayName || 'Docente'}</div>
-              <button
-                onClick={handleLogout}
-                className="text-[11px] transition-colors hover:text-[color:var(--color-orange)]"
-                style={{ color: 'var(--color-mute)' }}
-              >
-                Cerrar sesión
-              </button>
+              <div className="text-[11px]" style={{ color: 'var(--color-mute)' }}>Mi cuenta</div>
             </div>
-          </div>
+          </Link>
 
           <button
             className="btn-chunky btn-chunky-blush md:hidden"
