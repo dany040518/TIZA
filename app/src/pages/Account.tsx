@@ -210,17 +210,6 @@ export default function Account() {
           </div>
         </form>
 
-        {/* Logout */}
-        <div className="mt-8">
-          <button
-            onClick={handleLogout}
-            className="btn-chunky w-full justify-center"
-            style={{ padding: '14px 24px', fontSize: 14, background: 'var(--color-blush)' }}
-          >
-            Cerrar sesión
-          </button>
-        </div>
-
       </div>
     </DashboardLayout>
   );

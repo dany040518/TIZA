@@ -2,89 +2,69 @@ import { useEffect, useRef, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
+import { useToast } from '@/components/Toast';
 import {
-  getStudentsByClass,
-  createStudent,
-  enrollStudentInClass,
-  unenrollStudentFromClass,
-  getClasses,
-  importStudentsToClass,
+  getStudentsByClass, createStudent, updateStudent,
+  enrollStudentInClass, unenrollStudentFromClass,
+  getClasses, importStudentsToClass,
 } from '@/lib/db';
 import type { Student, Class, CsvStudentRow, ImportResult } from '@/types';
 import DashboardLayout from '@/components/layouts/DashboardLayout';
-import { Loader2, Plus, UserMinus, Upload, Download, ArrowLeft, FileText, AlertCircle, Check } from 'lucide-react';
+import {
+  Loader2, Plus, UserMinus, Upload, Download,
+  ArrowLeft, FileText, AlertCircle, Check, Pencil,
+} from 'lucide-react';
 import { Star } from '@/components/tiza/Mark';
 
-// ── CSV parsing ──────────────────────────────────────────────
+// ── CSV parsing ──────────────────────────────────────────────────────────────
 
 function parseCSVRow(line: string): string[] {
-  const fields: string[] = [];
-  let current = '';
-  let inQuotes = false;
+  const fields: string[] = []; let current = ''; let inQuotes = false;
   for (let i = 0; i < line.length; i++) {
     const ch = line[i];
     if (ch === '"') {
       if (inQuotes && line[i + 1] === '"') { current += '"'; i++; }
       else { inQuotes = !inQuotes; }
-    } else if (ch === ',' && !inQuotes) {
-      fields.push(current); current = '';
-    } else {
-      current += ch;
-    }
+    } else if (ch === ',' && !inQuotes) { fields.push(current); current = ''; }
+    else { current += ch; }
   }
   fields.push(current);
   return fields;
 }
 
-// Maps CSV header names (Spanish or English) to CsvStudentRow keys
 const HEADER_MAP: Record<string, keyof CsvStudentRow> = {
   nombre: 'full_name', 'nombre completo': 'full_name', full_name: 'full_name', name: 'full_name',
   codigo: 'student_code', código: 'student_code', student_code: 'student_code', code: 'student_code',
   email: 'email', correo: 'email', 'correo electrónico': 'email',
-  acudiente: 'guardian_name', guardian_name: 'guardian_name', guardian: 'guardian_name', 'nombre acudiente': 'guardian_name',
+  acudiente: 'guardian_name', guardian_name: 'guardian_name', guardian: 'guardian_name',
+  'nombre acudiente': 'guardian_name',
   telefono: 'guardian_phone', teléfono: 'guardian_phone', guardian_phone: 'guardian_phone',
   'telefono acudiente': 'guardian_phone', 'teléfono acudiente': 'guardian_phone',
 };
 
-interface ParsedRow extends CsvStudentRow {
-  _line: number;
-  _error?: string;
-}
+interface ParsedRow extends CsvStudentRow { _line: number; _error?: string; }
 
 function parseCSV(text: string): { rows: ParsedRow[]; error?: string } {
   const lines = text.split(/\r?\n/).filter((l) => l.trim());
   if (lines.length < 2) return { rows: [], error: 'El archivo está vacío o solo tiene encabezados.' };
-
   const headers = parseCSVRow(lines[0]).map((h) => h.trim().toLowerCase());
   const nameCol = headers.findIndex((h) => HEADER_MAP[h] === 'full_name');
-  if (nameCol === -1) {
-    return {
-      rows: [],
-      error: 'No se encontró la columna "nombre". Descarga la plantilla para ver el formato correcto.',
-    };
-  }
-
+  if (nameCol === -1)
+    return { rows: [], error: 'No se encontró la columna "nombre". Descarga la plantilla.' };
   const rows: ParsedRow[] = [];
   for (let i = 1; i < lines.length; i++) {
     const vals = parseCSVRow(lines[i]).map((v) => v.trim());
-    if (vals.every((v) => !v)) continue; // skip blank rows
-
+    if (vals.every((v) => !v)) continue;
     const row: ParsedRow = { full_name: '', _line: i + 1 };
     headers.forEach((h, idx) => {
       const key = HEADER_MAP[h];
       if (key && vals[idx]) (row as unknown as Record<string, string>)[key] = vals[idx];
     });
-
-    if (!row.full_name) {
-      row._error = `Fila ${i + 1}: el nombre es obligatorio.`;
-    }
+    if (!row.full_name) row._error = `Fila ${i + 1}: el nombre es obligatorio.`;
     rows.push(row);
   }
-
   return { rows };
 }
-
-// ── CSV template download ─────────────────────────────────────
 
 const CSV_TEMPLATE =
   'nombre,codigo,email,acudiente,telefono_acudiente\n' +
@@ -93,14 +73,116 @@ const CSV_TEMPLATE =
 
 function downloadTemplate() {
   const blob = new Blob(['﻿' + CSV_TEMPLATE], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
   a.href = url; a.download = 'plantilla_estudiantes_tiza.csv';
   document.body.appendChild(a); a.click();
   document.body.removeChild(a); URL.revokeObjectURL(url);
 }
 
-// ── Component ─────────────────────────────────────────────────
+// ── Edit modal ────────────────────────────────────────────────────────────────
+
+function EditStudentModal({
+  student,
+  onSave,
+  onClose,
+  saving,
+}: {
+  student: Student;
+  onSave: (fields: Partial<Student>) => Promise<void>;
+  onClose: () => void;
+  saving: boolean;
+}) {
+  const [fullName, setFullName]       = useState(student.full_name);
+  const [code, setCode]               = useState(student.student_code ?? '');
+  const [email, setEmail]             = useState(student.email ?? '');
+  const [guardian, setGuardian]       = useState(student.guardian_name ?? '');
+  const [guardianPhone, setGuardianPhone] = useState(student.guardian_phone ?? '');
+  const [notes, setNotes]             = useState(student.notes ?? '');
+
+  const inp = 'w-full bg-transparent border-0 border-b py-2 text-[14px] focus:outline-none';
+  const bc  = { borderColor: 'oklch(0.24 0.06 340 / 0.3)' };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ background: 'oklch(0.24 0.06 340 / 0.45)' }}
+      onClick={(e) => e.target === e.currentTarget && onClose()}
+    >
+      <div
+        className="sticker w-full max-w-[500px] max-h-[90vh] overflow-y-auto p-7 space-y-5"
+        style={{ background: 'var(--color-paper)' }}
+      >
+        <div className="flex items-center justify-between">
+          <div className="font-bold text-[16px]">Editar estudiante</div>
+          <button type="button" onClick={onClose} className="btn-chunky" style={{ padding: '6px 10px', fontSize: 13 }}>✕</button>
+        </div>
+        <form
+          onSubmit={async (e) => {
+            e.preventDefault();
+            await onSave({
+              full_name:      fullName.trim(),
+              student_code:   code.trim()          || undefined,
+              email:          email.trim()          || undefined,
+              guardian_name:  guardian.trim()       || undefined,
+              guardian_phone: guardianPhone.trim()  || undefined,
+              notes:          notes.trim()          || undefined,
+            });
+          }}
+          className="space-y-4"
+        >
+          <div>
+            <div className="label mb-1" style={{ color: 'var(--color-mute)' }}>Nombre completo *</div>
+            <input required value={fullName} onChange={(e) => setFullName(e.target.value)} className={inp} style={bc} />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <div className="label mb-1" style={{ color: 'var(--color-mute)' }}>Código</div>
+              <input value={code} onChange={(e) => setCode(e.target.value)} placeholder="2024-001" className={inp} style={bc} />
+            </div>
+            <div>
+              <div className="label mb-1" style={{ color: 'var(--color-mute)' }}>Correo</div>
+              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className={inp} style={bc} />
+            </div>
+            <div>
+              <div className="label mb-1" style={{ color: 'var(--color-mute)' }}>Acudiente</div>
+              <input value={guardian} onChange={(e) => setGuardian(e.target.value)} className={inp} style={bc} />
+            </div>
+            <div>
+              <div className="label mb-1" style={{ color: 'var(--color-mute)' }}>Tel. acudiente</div>
+              <input value={guardianPhone} onChange={(e) => setGuardianPhone(e.target.value)} className={inp} style={bc} />
+            </div>
+          </div>
+          <div>
+            <div className="label mb-1" style={{ color: 'var(--color-mute)' }}>Notas internas</div>
+            <textarea
+              rows={2}
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              className="w-full bg-transparent border rounded-xl p-3 text-[13px] resize-none focus:outline-none"
+              style={{ borderColor: 'oklch(0.24 0.06 340 / 0.25)' }}
+            />
+          </div>
+          <div className="flex gap-3 pt-2">
+            <button
+              type="submit"
+              disabled={saving}
+              className="btn-chunky btn-chunky-primary flex-1 justify-center"
+              style={{ padding: '11px 16px', fontSize: 13 }}
+            >
+              {saving ? <Loader2 size={13} className="animate-spin" /> : <>Guardar cambios</>}
+            </button>
+            <button type="button" className="btn-chunky" style={{ padding: '11px 16px', fontSize: 13 }} onClick={onClose}>
+              Cancelar
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ── Main component ────────────────────────────────────────────────────────────
 
 type Mode = 'list' | 'manual' | 'csv-upload' | 'csv-preview' | 'csv-done';
 
@@ -108,6 +190,7 @@ export default function Students() {
   const { classId } = useParams<{ classId: string }>();
   const { user }    = useAuth();
   const { profile } = useProfile();
+  const { success, error: toastError } = useToast();
 
   const [cls, setCls]           = useState<Class | null>(null);
   const [students, setStudents] = useState<Student[]>([]);
@@ -120,19 +203,23 @@ export default function Students() {
   const [email, setEmail]             = useState('');
   const [saving, setSaving]           = useState(false);
 
-  // CSV state
-  const fileRef                             = useRef<HTMLInputElement>(null);
-  const [csvRows, setCsvRows]               = useState<ParsedRow[]>([]);
-  const [csvFileError, setCsvFileError]     = useState('');
-  const [importing, setImporting]           = useState(false);
-  const [importResult, setImportResult]     = useState<ImportResult | null>(null);
+  // Edit modal
+  const [editTarget, setEditTarget] = useState<Student | null>(null);
+  const [editSaving, setEditSaving] = useState(false);
+
+  // CSV
+  const fileRef                         = useRef<HTMLInputElement>(null);
+  const [csvRows, setCsvRows]           = useState<ParsedRow[]>([]);
+  const [csvFileError, setCsvFileError] = useState('');
+  const [importing, setImporting]       = useState(false);
+  const [importResult, setImportResult] = useState<ImportResult | null>(null);
 
   // Unenroll
   const [removing, setRemoving] = useState<string | null>(null);
 
   useEffect(() => {
     if (!classId || !user) return;
-    Promise.all([getClasses(user.id), getStudentsByClass(classId)])
+    Promise.all([getClasses(user.id, true), getStudentsByClass(classId)])
       .then(([classes, studs]) => {
         setCls(classes.find((c) => c.id === classId) ?? null);
         setStudents(studs);
@@ -140,8 +227,7 @@ export default function Students() {
       .finally(() => setLoading(false));
   }, [classId, user]);
 
-  // ── Manual add ──────────────────────────────────────────────
-
+  // ── Manual add ─────────────────────────────────────────────
   const handleManualAdd = async (e: React.BaseSyntheticEvent) => {
     e.preventDefault();
     if (!classId || !user || !profile?.institution_id) return;
@@ -156,35 +242,48 @@ export default function Students() {
         is_active:      true,
       });
       await enrollStudentInClass(classId, student.id);
-      setStudents((prev) =>
-        [...prev, student].sort((a, b) => a.full_name.localeCompare(b.full_name)),
-      );
+      setStudents((prev) => [...prev, student].sort((a, b) => a.full_name.localeCompare(b.full_name)));
       setFullName(''); setStudentCode(''); setEmail('');
       setMode('list');
-    } catch (err) {
-      console.error(err);
+      success('Estudiante agregado');
+    } catch {
+      toastError('Error al agregar el estudiante.');
     } finally {
       setSaving(false);
     }
   };
 
-  // ── Unenroll ────────────────────────────────────────────────
+  // ── Edit save ──────────────────────────────────────────────
+  const handleEditSave = async (fields: Partial<Student>) => {
+    if (!editTarget) return;
+    setEditSaving(true);
+    try {
+      const updated = await updateStudent(editTarget.id, fields);
+      setStudents((prev) => prev.map((s) => (s.id === editTarget.id ? updated : s)));
+      setEditTarget(null);
+      success('Datos del estudiante actualizados');
+    } catch {
+      toastError('Error al actualizar el estudiante.');
+    } finally {
+      setEditSaving(false);
+    }
+  };
 
+  // ── Unenroll ───────────────────────────────────────────────
   const handleUnenroll = async (studentId: string) => {
     if (!classId || !confirm('¿Quitar este estudiante de la clase? No se elimina su registro.')) return;
     setRemoving(studentId);
     try {
       await unenrollStudentFromClass(classId, studentId);
       setStudents((prev) => prev.filter((s) => s.id !== studentId));
-    } catch (err) {
-      console.error(err);
+    } catch {
+      toastError('Error al quitar el estudiante.');
     } finally {
       setRemoving(null);
     }
   };
 
-  // ── CSV file parsing ─────────────────────────────────────────
-
+  // ── CSV ────────────────────────────────────────────────────
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -200,27 +299,20 @@ export default function Students() {
     reader.readAsText(file, 'UTF-8');
   };
 
-  // ── CSV import ───────────────────────────────────────────────
-
   const handleImport = async () => {
     if (!classId || !user || !profile?.institution_id) return;
     const validRows = csvRows.filter((r) => !r._error && r.full_name);
     if (!validRows.length) return;
     setImporting(true);
     try {
-      const result = await importStudentsToClass(
-        classId,
-        user.id,
-        profile.institution_id,
-        validRows,
-      );
+      const result = await importStudentsToClass(classId, user.id, profile.institution_id, validRows);
       setImportResult(result);
-      // Refresh student list
       const fresh = await getStudentsByClass(classId);
       setStudents(fresh);
       setMode('csv-done');
-    } catch (err) {
-      console.error(err);
+      success(`${result.created + result.enrolled} estudiante${(result.created + result.enrolled) !== 1 ? 's' : ''} importado${(result.created + result.enrolled) !== 1 ? 's' : ''}`);
+    } catch {
+      toastError('Error al importar el archivo CSV.');
     } finally {
       setImporting(false);
     }
@@ -232,28 +324,20 @@ export default function Students() {
     setMode('list');
   };
 
-  // ── Derived counts ───────────────────────────────────────────
-
-  const validRowCount  = csvRows.filter((r) => !r._error && r.full_name).length;
+  const validRowCount   = csvRows.filter((r) => !r._error && r.full_name).length;
   const invalidRowCount = csvRows.filter((r) => !!r._error).length;
-
-  // ── Render ───────────────────────────────────────────────────
 
   return (
     <DashboardLayout>
-      <div className="mx-auto max-w-[900px] px-6 md:px-10 py-10">
+      <div className="mx-auto max-w-[900px] px-4 sm:px-6 md:px-10 py-8">
 
-        <Link
-          to="/classes"
-          className="btn-chunky no-underline mb-6 inline-flex"
-          style={{ padding: '8px 14px', fontSize: 13 }}
-        >
+        <Link to="/classes" className="btn-chunky no-underline mb-6 inline-flex" style={{ padding: '8px 14px', fontSize: 13 }}>
           <ArrowLeft size={14} />
           Mis clases
         </Link>
 
         {/* Header */}
-        <div className="flex items-start justify-between mb-8 flex-wrap gap-4 mt-4">
+        <div className="flex flex-wrap items-start justify-between gap-4 mb-8 mt-4">
           <div>
             <div className="flex items-center gap-2 label mb-2" style={{ color: 'var(--color-mute)' }}>
               <Star size={13} fill="var(--color-orange)" />
@@ -264,24 +348,17 @@ export default function Students() {
               <span className="serif-em" style={{ color: 'var(--color-orange)' }}>estudiantes</span>
             </h1>
           </div>
-
           {mode === 'list' && (
             <div className="flex gap-2 flex-wrap">
-              <button
-                onClick={() => setMode('manual')}
-                className="btn-chunky btn-chunky-primary"
-                style={{ padding: '10px 16px', fontSize: 13 }}
-              >
-                <Plus size={14} />
-                Agregar
+              <button onClick={() => setMode('manual')} className="btn-chunky btn-chunky-primary" style={{ padding: '10px 16px', fontSize: 13 }}>
+                <Plus size={14} /> Agregar
               </button>
               <button
                 onClick={() => { setCsvFileError(''); setMode('csv-upload'); }}
                 className="btn-chunky"
                 style={{ padding: '10px 16px', fontSize: 13, background: 'var(--color-lilac)' }}
               >
-                <Upload size={14} />
-                Importar CSV
+                <Upload size={14} /> Importar CSV
               </button>
             </div>
           )}
@@ -293,170 +370,100 @@ export default function Students() {
           </div>
         )}
 
-        {/* ── Manual add form ── */}
+        {/* Manual form */}
         {mode === 'manual' && (
-          <form
-            onSubmit={handleManualAdd}
-            className="sticker p-6 mb-6 space-y-4"
-            style={{ background: 'oklch(0.96 0.06 90)' }}
-          >
+          <form onSubmit={handleManualAdd} className="sticker p-6 mb-6 space-y-4" style={{ background: 'oklch(0.96 0.06 90)' }}>
             <div className="font-bold text-[15px]">Nuevo estudiante</div>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="sm:col-span-1">
                 <div className="label mb-1" style={{ color: 'var(--color-mute)' }}>Nombre completo *</div>
-                <input
-                  required
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
+                <input required value={fullName} onChange={(e) => setFullName(e.target.value)}
                   placeholder="Ana García López"
                   className="w-full bg-transparent border-0 border-b py-2 text-[15px] focus:outline-none"
-                  style={{ borderColor: 'oklch(0.24 0.06 340 / 0.3)' }}
-                />
+                  style={{ borderColor: 'oklch(0.24 0.06 340 / 0.3)' }} />
               </div>
               <div>
                 <div className="label mb-1" style={{ color: 'var(--color-mute)' }}>Código (opcional)</div>
-                <input
-                  value={studentCode}
-                  onChange={(e) => setStudentCode(e.target.value)}
+                <input value={studentCode} onChange={(e) => setStudentCode(e.target.value)}
                   placeholder="2024-001"
                   className="w-full bg-transparent border-0 border-b py-2 text-[15px] focus:outline-none"
-                  style={{ borderColor: 'oklch(0.24 0.06 340 / 0.3)' }}
-                />
+                  style={{ borderColor: 'oklch(0.24 0.06 340 / 0.3)' }} />
               </div>
               <div>
                 <div className="label mb-1" style={{ color: 'var(--color-mute)' }}>Correo (opcional)</div>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)}
                   placeholder="ana@escuela.edu"
                   className="w-full bg-transparent border-0 border-b py-2 text-[15px] focus:outline-none"
-                  style={{ borderColor: 'oklch(0.24 0.06 340 / 0.3)' }}
-                />
+                  style={{ borderColor: 'oklch(0.24 0.06 340 / 0.3)' }} />
               </div>
             </div>
             <div className="flex gap-3 pt-1">
-              <button
-                type="submit"
-                disabled={saving}
-                className="btn-chunky btn-chunky-primary"
-                style={{ padding: '10px 18px', fontSize: 13 }}
-              >
-                {saving ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
-                Agregar
+              <button type="submit" disabled={saving} className="btn-chunky btn-chunky-primary" style={{ padding: '10px 18px', fontSize: 13 }}>
+                {saving ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />} Agregar
               </button>
-              <button
-                type="button"
-                className="btn-chunky"
-                style={{ padding: '10px 18px', fontSize: 13 }}
-                onClick={() => setMode('list')}
-              >
+              <button type="button" className="btn-chunky" style={{ padding: '10px 18px', fontSize: 13 }} onClick={() => setMode('list')}>
                 Cancelar
               </button>
             </div>
           </form>
         )}
 
-        {/* ── CSV upload panel ── */}
+        {/* CSV upload */}
         {mode === 'csv-upload' && (
           <div className="sticker p-6 mb-6 space-y-5" style={{ background: 'var(--color-paper)' }}>
             <div className="flex items-center justify-between flex-wrap gap-3">
               <div className="font-bold text-[15px]">Importar desde CSV</div>
-              <button
-                onClick={downloadTemplate}
-                className="btn-chunky text-[12px]"
-                style={{ padding: '7px 14px', background: 'var(--color-mint)' }}
-              >
-                <Download size={13} />
-                Descargar plantilla
+              <button onClick={downloadTemplate} className="btn-chunky text-[12px]" style={{ padding: '7px 14px', background: 'var(--color-mint)' }}>
+                <Download size={13} /> Descargar plantilla
               </button>
             </div>
-
             <p className="text-[13px]" style={{ color: 'var(--color-mute)', lineHeight: 1.5 }}>
-              El archivo debe tener una columna <strong>nombre</strong> (obligatoria).
-              Columnas opcionales: <strong>codigo</strong>, <strong>email</strong>, <strong>acudiente</strong>, <strong>telefono_acudiente</strong>.
+              Columna obligatoria: <strong>nombre</strong>. Opcionales: <strong>codigo</strong>, <strong>email</strong>, <strong>acudiente</strong>, <strong>telefono_acudiente</strong>.
             </p>
-
             {csvFileError && (
-              <div
-                className="sticker p-3 flex items-start gap-2 text-[13px]"
-                style={{ background: 'oklch(0.95 0.06 25)', borderColor: 'oklch(0.55 0.18 25)' }}
-              >
-                <AlertCircle size={15} className="shrink-0 mt-0.5" />
-                {csvFileError}
+              <div className="sticker p-3 flex items-start gap-2 text-[13px]"
+                style={{ background: 'oklch(0.95 0.06 25)', borderColor: 'oklch(0.55 0.18 25)' }}>
+                <AlertCircle size={15} className="shrink-0 mt-0.5" />{csvFileError}
               </div>
             )}
-
-            <div
-              className="sticker p-8 flex flex-col items-center justify-center gap-3 cursor-pointer transition-opacity hover:opacity-80"
+            <div className="sticker p-8 flex flex-col items-center justify-center gap-3 cursor-pointer transition-opacity hover:opacity-80"
               style={{ background: 'var(--color-cream)', borderStyle: 'dashed' }}
-              onClick={() => fileRef.current?.click()}
-            >
+              onClick={() => fileRef.current?.click()}>
               <FileText size={32} style={{ color: 'var(--color-mute)' }} />
               <div className="font-semibold text-[14px]">Haz clic para seleccionar el archivo CSV</div>
-              <div className="text-[12px]" style={{ color: 'var(--color-mute)' }}>
-                Formato: UTF-8, separado por comas
-              </div>
+              <div className="text-[12px]" style={{ color: 'var(--color-mute)' }}>Formato: UTF-8, separado por comas</div>
             </div>
-
-            <input
-              ref={fileRef}
-              type="file"
-              accept=".csv,text/csv"
-              className="hidden"
-              onChange={handleFileSelect}
-            />
-
-            <button
-              onClick={() => setMode('list')}
-              className="btn-chunky"
-              style={{ padding: '10px 18px', fontSize: 13 }}
-            >
-              Cancelar
-            </button>
+            <input ref={fileRef} type="file" accept=".csv,text/csv" className="hidden" onChange={handleFileSelect} />
+            <button onClick={() => setMode('list')} className="btn-chunky" style={{ padding: '10px 18px', fontSize: 13 }}>Cancelar</button>
           </div>
         )}
 
-        {/* ── CSV preview ── */}
+        {/* CSV preview */}
         {mode === 'csv-preview' && (
           <div className="sticker p-6 mb-6 space-y-5" style={{ background: 'var(--color-paper)' }}>
-            <div className="font-bold text-[15px]">Previsualización — {csvRows.length} fila{csvRows.length !== 1 ? 's' : ''} detectada{csvRows.length !== 1 ? 's' : ''}</div>
-
-            {/* Summary chips */}
+            <div className="font-bold text-[15px]">Previsualización — {csvRows.length} fila{csvRows.length !== 1 ? 's' : ''}</div>
             <div className="flex flex-wrap gap-2">
               <span className="chip font-semibold" style={{ background: 'var(--color-mint)' }}>
-                <Check size={12} />
-                {validRowCount} lista{validRowCount !== 1 ? 's' : ''} para importar
+                <Check size={12} /> {validRowCount} para importar
               </span>
               {invalidRowCount > 0 && (
                 <span className="chip font-semibold" style={{ background: 'var(--color-blush)' }}>
-                  <AlertCircle size={12} />
-                  {invalidRowCount} con error
+                  <AlertCircle size={12} /> {invalidRowCount} con error
                 </span>
               )}
             </div>
-
-            {/* Preview table */}
             <div className="overflow-x-auto">
               <table className="w-full text-[13px] border-collapse">
                 <thead>
                   <tr style={{ borderBottom: '2px solid oklch(0.24 0.06 340 / 0.15)' }}>
-                    <th className="text-left py-2 px-3 font-bold" style={{ color: 'var(--color-mute)' }}>#</th>
-                    <th className="text-left py-2 px-3 font-bold" style={{ color: 'var(--color-mute)' }}>Nombre</th>
-                    <th className="text-left py-2 px-3 font-bold" style={{ color: 'var(--color-mute)' }}>Código</th>
-                    <th className="text-left py-2 px-3 font-bold" style={{ color: 'var(--color-mute)' }}>Email</th>
-                    <th className="text-left py-2 px-3 font-bold" style={{ color: 'var(--color-mute)' }}>Estado</th>
+                    {['#', 'Nombre', 'Código', 'Email', 'Estado'].map((h) => (
+                      <th key={h} className="text-left py-2 px-3 font-bold" style={{ color: 'var(--color-mute)' }}>{h}</th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody>
                   {csvRows.map((row) => (
-                    <tr
-                      key={row._line}
-                      style={{
-                        borderBottom: '1px solid oklch(0.24 0.06 340 / 0.08)',
-                        background: row._error ? 'oklch(0.97 0.04 25)' : 'transparent',
-                      }}
-                    >
+                    <tr key={row._line} style={{ borderBottom: '1px solid oklch(0.24 0.06 340 / 0.08)', background: row._error ? 'oklch(0.97 0.04 25)' : 'transparent' }}>
                       <td className="py-2 px-3" style={{ color: 'var(--color-mute)' }}>{row._line}</td>
                       <td className="py-2 px-3 font-semibold">{row.full_name || <em style={{ color: 'var(--color-mute)' }}>vacío</em>}</td>
                       <td className="py-2 px-3">{row.student_code ?? '—'}</td>
@@ -464,80 +471,45 @@ export default function Students() {
                       <td className="py-2 px-3">
                         {row._error
                           ? <span style={{ color: 'oklch(0.5 0.18 25)' }}>{row._error}</span>
-                          : <span style={{ color: 'oklch(0.45 0.15 145)' }}>✓ válido</span>}
+                          : <span style={{ color: 'oklch(0.45 0.15 145)' }}>✓</span>}
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             </div>
-
             <div className="flex gap-3 flex-wrap pt-1">
-              <button
-                onClick={handleImport}
-                disabled={importing || validRowCount === 0}
-                className="btn-chunky btn-chunky-primary"
-                style={{ padding: '12px 20px', fontSize: 14 }}
-              >
-                {importing
-                  ? <><Loader2 size={14} className="animate-spin" />Importando…</>
-                  : <><Upload size={14} />Importar {validRowCount} estudiante{validRowCount !== 1 ? 's' : ''}</>}
+              <button onClick={handleImport} disabled={importing || validRowCount === 0} className="btn-chunky btn-chunky-primary" style={{ padding: '12px 20px', fontSize: 14 }}>
+                {importing ? <><Loader2 size={14} className="animate-spin" />Importando…</> : <><Upload size={14} />Importar {validRowCount}</>}
               </button>
-              <button
-                onClick={resetCsv}
-                className="btn-chunky"
-                style={{ padding: '12px 20px', fontSize: 14 }}
-              >
-                Cancelar
-              </button>
+              <button onClick={resetCsv} className="btn-chunky" style={{ padding: '12px 20px', fontSize: 14 }}>Cancelar</button>
             </div>
           </div>
         )}
 
-        {/* ── Import result ── */}
+        {/* Import result */}
         {mode === 'csv-done' && importResult && (
           <div className="sticker p-6 mb-6 space-y-4" style={{ background: 'var(--color-mint)' }}>
             <div className="font-hand text-[22px]" style={{ color: 'var(--color-orange)' }}>¡Listo! ✿</div>
             <div className="grid grid-cols-3 gap-4 text-center">
-              <div className="sticker p-3" style={{ background: 'oklch(1 0 0 / 0.6)' }}>
-                <div className="font-bold text-[24px]">{importResult.created}</div>
-                <div className="text-[11px] font-semibold" style={{ color: 'var(--color-mute)' }}>nuevos</div>
-              </div>
-              <div className="sticker p-3" style={{ background: 'oklch(1 0 0 / 0.6)' }}>
-                <div className="font-bold text-[24px]">{importResult.enrolled}</div>
-                <div className="text-[11px] font-semibold" style={{ color: 'var(--color-mute)' }}>matriculados</div>
-              </div>
-              <div className="sticker p-3" style={{ background: 'oklch(1 0 0 / 0.6)' }}>
-                <div className="font-bold text-[24px]">{importResult.skipped}</div>
-                <div className="text-[11px] font-semibold" style={{ color: 'var(--color-mute)' }}>omitidos</div>
-              </div>
+              {[['nuevos', importResult.created], ['matriculados', importResult.enrolled], ['omitidos', importResult.skipped]].map(([label, val]) => (
+                <div key={String(label)} className="sticker p-3" style={{ background: 'oklch(1 0 0 / 0.6)' }}>
+                  <div className="font-bold text-[24px]">{val}</div>
+                  <div className="text-[11px] font-semibold" style={{ color: 'var(--color-mute)' }}>{label}</div>
+                </div>
+              ))}
             </div>
-            {importResult.errors.length > 0 && (
-              <div className="space-y-1">
-                {importResult.errors.map((e, i) => (
-                  <div key={i} className="text-[12px]" style={{ color: 'oklch(0.45 0.15 25)' }}>• {e}</div>
-                ))}
-              </div>
-            )}
-            <button
-              onClick={resetCsv}
-              className="btn-chunky btn-chunky-primary"
-              style={{ padding: '10px 18px', fontSize: 13 }}
-            >
-              Ver lista
-            </button>
+            <button onClick={resetCsv} className="btn-chunky btn-chunky-primary" style={{ padding: '10px 18px', fontSize: 13 }}>Ver lista</button>
           </div>
         )}
 
-        {/* ── Student list ── */}
+        {/* Student list */}
         {!loading && mode === 'list' && (
           <>
             {students.length === 0 ? (
               <div className="sticker p-10 text-center" style={{ background: 'var(--color-paper)' }}>
                 <p className="font-semibold text-[16px]">No hay estudiantes en esta clase.</p>
-                <p className="text-[13px] mt-1" style={{ color: 'var(--color-mute)' }}>
-                  Agrega estudiantes manualmente o importa una lista CSV.
-                </p>
+                <p className="text-[13px] mt-1" style={{ color: 'var(--color-mute)' }}>Agrega estudiantes manualmente o importa un CSV.</p>
               </div>
             ) : (
               <>
@@ -546,44 +518,38 @@ export default function Students() {
                 </div>
                 <div className="space-y-2">
                   {students.map((s, i) => (
-                    <div
-                      key={s.id}
-                      className="sticker p-4 flex items-center justify-between gap-4"
-                      style={{ background: 'var(--color-paper)' }}
-                    >
-                      <div className="flex items-center gap-4">
-                        <span
-                          className="rounded-full font-bold text-[12px] flex items-center justify-center shrink-0"
-                          style={{
-                            width: 32, height: 32,
-                            background: 'var(--color-lilac)',
-                            border: '2px solid var(--color-plum)',
-                          }}
-                        >
+                    <div key={s.id} className="sticker p-4 flex items-center justify-between gap-4" style={{ background: 'var(--color-paper)' }}>
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <span className="rounded-full font-bold text-[12px] flex items-center justify-center shrink-0"
+                          style={{ width: 32, height: 32, background: 'var(--color-lilac)', border: '2px solid var(--color-plum)' }}>
                           {i + 1}
                         </span>
-                        <div>
-                          <div className="font-semibold text-[14px]">{s.full_name}</div>
-                          <div className="text-[12px]" style={{ color: 'var(--color-mute)' }}>
+                        <div className="min-w-0">
+                          <div className="font-semibold text-[14px] truncate">{s.full_name}</div>
+                          <div className="text-[12px] truncate" style={{ color: 'var(--color-mute)' }}>
                             {[s.student_code, s.email].filter(Boolean).join(' · ')}
                           </div>
                         </div>
                       </div>
-                      <button
-                        title="Quitar de esta clase"
-                        className="btn-chunky"
-                        style={{
-                          padding: '6px 10px',
-                          fontSize: 13,
-                          opacity: removing === s.id ? 0.5 : 1,
-                        }}
-                        disabled={removing === s.id}
-                        onClick={() => handleUnenroll(s.id)}
-                      >
-                        {removing === s.id
-                          ? <Loader2 size={13} className="animate-spin" />
-                          : <UserMinus size={13} />}
-                      </button>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                          className="btn-chunky"
+                          style={{ padding: '6px 10px', fontSize: 12 }}
+                          onClick={() => setEditTarget(s)}
+                          title="Editar"
+                        >
+                          <Pencil size={12} />
+                        </button>
+                        <button
+                          className="btn-chunky"
+                          style={{ padding: '6px 10px', fontSize: 12, opacity: removing === s.id ? 0.5 : 1 }}
+                          disabled={removing === s.id}
+                          onClick={() => handleUnenroll(s.id)}
+                          title="Quitar de esta clase"
+                        >
+                          {removing === s.id ? <Loader2 size={12} className="animate-spin" /> : <UserMinus size={12} />}
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -593,6 +559,16 @@ export default function Students() {
         )}
 
       </div>
+
+      {/* Edit modal */}
+      {editTarget && (
+        <EditStudentModal
+          student={editTarget}
+          onSave={handleEditSave}
+          onClose={() => setEditTarget(null)}
+          saving={editSaving}
+        />
+      )}
     </DashboardLayout>
   );
 }

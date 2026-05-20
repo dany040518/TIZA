@@ -9,10 +9,8 @@ import { Loader2, ArrowLeft, Save } from 'lucide-react';
 import { Star } from '@/components/tiza/Mark';
 
 const STATUSES: { value: AttendanceStatus; label: string; bg: string }[] = [
-  { value: 'present',  label: 'Presente', bg: 'var(--color-mint)'   },
-  { value: 'absent',   label: 'Ausente',  bg: 'var(--color-blush)'  },
-  { value: 'late',     label: 'Tarde',    bg: 'var(--color-butter)' },
-  { value: 'excused',  label: 'Excusado', bg: 'var(--color-lilac)'  },
+  { value: 'present', label: 'Presente', bg: 'var(--color-mint)'  },
+  { value: 'absent',  label: 'Ausente',  bg: 'var(--color-blush)' },
 ];
 
 function todayISO() {
@@ -88,7 +86,7 @@ export default function Attendance() {
       acc[st] = (acc[st] ?? 0) + 1;
       return acc;
     },
-    { present: 0, absent: 0, late: 0, excused: 0 },
+    { present: 0, absent: 0 },
   );
 
   return (

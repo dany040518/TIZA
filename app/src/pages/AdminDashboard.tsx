@@ -2,7 +2,8 @@ import { useEffect, useState } from 'react';
 import DashboardLayout from '@/components/layouts/DashboardLayout';
 import { getInstitutionsWithCodes, createInstitution, createInviteCode } from '@/lib/db';
 import type { Institution, InviteCode, InstitutionType } from '@/types';
-import { Loader2, Plus, Building2 } from 'lucide-react';
+import { useToast } from '@/components/Toast';
+import { Loader2, Plus, Building2, RefreshCw } from 'lucide-react';
 import { Star } from '@/components/tiza/Mark';
 
 const TYPE_LABEL: Record<InstitutionType, string> = {
@@ -39,9 +40,11 @@ function generateCode(name: string): string {
 type InstitutionWithCodes = Institution & { invite_codes: InviteCode[] };
 
 export default function AdminDashboard() {
+  const { success, error: toastError } = useToast();
   const [institutions, setInstitutions] = useState<InstitutionWithCodes[]>([]);
   const [loading, setLoading]           = useState(true);
   const [showForm, setShowForm]         = useState(false);
+  const [generatingCode, setGeneratingCode] = useState<string | null>(null);
 
   const [name, setName]       = useState('');
   const [type, setType]       = useState<InstitutionType>('secundaria');
@@ -56,7 +59,7 @@ export default function AdminDashboard() {
       .finally(() => setLoading(false));
   }, []);
 
-  const handleCreate = async (e: React.FormEvent) => {
+  const handleCreate = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!name.trim()) return;
     setSaving(true);
@@ -74,10 +77,30 @@ export default function AdminDashboard() {
       setInstitutions((prev) => [{ ...inst, invite_codes: [code] }, ...prev]);
       setShowForm(false);
       setName(''); setCity(''); setType('secundaria'); setCountry('CO');
+      success(`Institución "${inst.name}" creada · código ${code.code}`);
     } catch (err) {
-      setFormError(err instanceof Error ? err.message : 'Error al crear la institución.');
+      const msg = err instanceof Error ? err.message : 'Error al crear la institución.';
+      setFormError(msg);
+      toastError(msg);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleGenerateCode = async (instId: string, instName: string) => {
+    setGeneratingCode(instId);
+    try {
+      const code = await createInviteCode(instId, generateCode(instName));
+      setInstitutions((prev) =>
+        prev.map((i) =>
+          i.id === instId ? { ...i, invite_codes: [...i.invite_codes, code] } : i,
+        ),
+      );
+      success(`Nuevo código generado: ${code.code}`);
+    } catch (err) {
+      toastError('No se pudo generar el código.');
+    } finally {
+      setGeneratingCode(null);
     }
   };
 
@@ -287,26 +310,36 @@ export default function AdminDashboard() {
                     )}
                   </div>
 
-                  {/* Primary code highlight */}
-                  {primaryCode && (
-                    <div
-                      className="sticker px-5 py-3 text-center shrink-0"
-                      style={{ background: 'var(--color-plum)' }}
-                    >
-                      <div className="text-[10px] font-bold mb-1" style={{ color: 'oklch(1 0 0 / 0.5)' }}>
-                        CÓDIGO ACTIVO
-                      </div>
+                  {/* Primary code highlight + new code button */}
+                  <div className="flex flex-col gap-2 shrink-0">
+                    {primaryCode && (
                       <div
-                        className="font-bold text-[22px] tracking-widest"
-                        style={{ color: 'var(--color-butter)' }}
+                        className="sticker px-5 py-3 text-center"
+                        style={{ background: 'var(--color-plum)' }}
                       >
-                        {primaryCode.code}
+                        <div className="text-[10px] font-bold mb-1" style={{ color: 'oklch(1 0 0 / 0.5)' }}>
+                          CÓDIGO ACTIVO
+                        </div>
+                        <div className="font-bold text-[22px] tracking-widest" style={{ color: 'var(--color-butter)' }}>
+                          {primaryCode.code}
+                        </div>
+                        <div className="text-[10px] mt-1" style={{ color: 'oklch(1 0 0 / 0.5)' }}>
+                          {primaryCode.use_count} / {primaryCode.max_uses} usos
+                        </div>
                       </div>
-                      <div className="text-[10px] mt-1" style={{ color: 'oklch(1 0 0 / 0.5)' }}>
-                        {primaryCode.use_count} / {primaryCode.max_uses} usos
-                      </div>
-                    </div>
-                  )}
+                    )}
+                    <button
+                      onClick={() => handleGenerateCode(inst.id, inst.name)}
+                      disabled={generatingCode === inst.id}
+                      className="btn-chunky"
+                      style={{ padding: '7px 12px', fontSize: 12 }}
+                    >
+                      {generatingCode === inst.id
+                        ? <Loader2 size={13} className="animate-spin" />
+                        : <RefreshCw size={13} />}
+                      Nuevo código
+                    </button>
+                  </div>
                 </div>
               </div>
             );
