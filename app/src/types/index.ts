@@ -149,6 +149,7 @@ export interface InviteCode {
   id: string;
   institution_id: string;
   code: string;
+  role: 'teacher' | 'coordinator';
   created_by?: string | null;
   max_uses: number;
   use_count: number;
@@ -161,6 +162,7 @@ export interface ValidateInviteCodeResult {
   institution_id: string | null;
   institution_name: string | null;
   institution_type: string | null;
+  role: string | null;
   is_valid: boolean;
 }
 

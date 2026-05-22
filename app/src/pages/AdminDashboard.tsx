@@ -73,11 +73,14 @@ export default function AdminDashboard() {
         country:   country.trim().toUpperCase().slice(0, 2) || 'CO',
         is_active: true,
       });
-      const code = await createInviteCode(inst.id, generateCode(name.trim()));
-      setInstitutions((prev) => [{ ...inst, invite_codes: [code] }, ...prev]);
+      const [teacherCode, coordCode] = await Promise.all([
+        createInviteCode(inst.id, generateCode(name.trim()), 'teacher'),
+        createInviteCode(inst.id, generateCode(name.trim()), 'coordinator'),
+      ]);
+      setInstitutions((prev) => [{ ...inst, invite_codes: [teacherCode, coordCode] }, ...prev]);
       setShowForm(false);
       setName(''); setCity(''); setType('secundaria'); setCountry('CO');
-      success(`Institución "${inst.name}" creada · código ${code.code}`);
+      success(`"${inst.name}" creada · Docente: ${teacherCode.code} · Coordinador: ${coordCode.code}`);
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Error al crear la institución.';
       setFormError(msg);
@@ -90,15 +93,18 @@ export default function AdminDashboard() {
   const handleGenerateCode = async (instId: string, instName: string) => {
     setGeneratingCode(instId);
     try {
-      const code = await createInviteCode(instId, generateCode(instName));
+      const [tc, cc] = await Promise.all([
+        createInviteCode(instId, generateCode(instName), 'teacher'),
+        createInviteCode(instId, generateCode(instName), 'coordinator'),
+      ]);
       setInstitutions((prev) =>
         prev.map((i) =>
-          i.id === instId ? { ...i, invite_codes: [...i.invite_codes, code] } : i,
+          i.id === instId ? { ...i, invite_codes: [...i.invite_codes, tc, cc] } : i,
         ),
       );
-      success(`Nuevo código generado: ${code.code}`);
-    } catch (err) {
-      toastError('No se pudo generar el código.');
+      success(`Nuevos códigos · Docente: ${tc.code} · Coordinador: ${cc.code}`);
+    } catch {
+      toastError('No se pudieron generar los códigos.');
     } finally {
       setGeneratingCode(null);
     }
@@ -259,7 +265,8 @@ export default function AdminDashboard() {
         {/* Institution cards */}
         <div className="space-y-4">
           {institutions.map((inst) => {
-            const primaryCode = inst.invite_codes.find((c) => c.is_active) ?? inst.invite_codes[0];
+            const teacherCode = inst.invite_codes.filter((c) => c.role === 'teacher').slice(-1)[0];
+            const coordCode   = inst.invite_codes.filter((c) => c.role === 'coordinator').slice(-1)[0];
             return (
               <div
                 key={inst.id}
@@ -291,43 +298,46 @@ export default function AdminDashboard() {
                       )}
                     </div>
 
-                    {/* All invite codes */}
+                    {/* Invite codes by role */}
                     {inst.invite_codes.length > 0 && (
                       <div className="flex flex-wrap gap-2 mt-3">
-                        {inst.invite_codes.map((c) => (
-                          <span
-                            key={c.id}
-                            className="sticker px-3 py-1 text-[12px] font-bold tracking-wider"
-                            style={{ background: c.is_active ? 'var(--color-lilac)' : 'var(--color-cream)', opacity: c.is_active ? 1 : 0.6 }}
-                          >
-                            {c.code}
-                            <span className="ml-2 font-normal text-[11px]" style={{ color: 'var(--color-mute)' }}>
-                              {c.use_count}/{c.max_uses}
-                            </span>
-                          </span>
-                        ))}
+                        {(['teacher', 'coordinator'] as const).map((role) => {
+                          const c = inst.invite_codes.filter((x) => x.role === role).slice(-1)[0];
+                          if (!c) return null;
+                          return (
+                            <div key={c.id} className="sticker px-3 py-2" style={{ background: role === 'coordinator' ? 'var(--color-lilac)' : 'var(--color-butter)' }}>
+                              <div className="text-[9px] font-bold tracking-wider uppercase mb-0.5" style={{ color: 'var(--color-mute)' }}>
+                                {role === 'coordinator' ? 'Coordinador' : 'Docente'}
+                              </div>
+                              <div className="font-bold text-[13px] tracking-widest">{c.code}</div>
+                              <div className="text-[10px] mt-0.5" style={{ color: 'var(--color-mute)' }}>
+                                {c.use_count} usos
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
                     )}
                   </div>
 
-                  {/* Primary code highlight + new code button */}
+                  {/* Highlighted codes by role */}
                   <div className="flex flex-col gap-2 shrink-0">
-                    {primaryCode && (
-                      <div
-                        className="sticker px-5 py-3 text-center"
-                        style={{ background: 'var(--color-plum)' }}
-                      >
-                        <div className="text-[10px] font-bold mb-1" style={{ color: 'oklch(1 0 0 / 0.5)' }}>
-                          CÓDIGO ACTIVO
+                    {([
+                      { code: teacherCode, role: 'teacher',      label: 'DOCENTE',      bg: 'var(--color-plum)', accent: 'var(--color-butter)' },
+                      { code: coordCode,   role: 'coordinator',  label: 'COORDINADOR',  bg: 'oklch(0.28 0.08 280)', accent: 'var(--color-lilac)' },
+                    ] as const).map(({ code: c, label, bg, accent }) => c && (
+                      <div key={c.id} className="sticker px-4 py-2.5 text-center" style={{ background: bg }}>
+                        <div className="text-[9px] font-bold tracking-wider mb-0.5" style={{ color: 'oklch(1 0 0 / 0.45)' }}>
+                          {label}
                         </div>
-                        <div className="font-bold text-[22px] tracking-widest" style={{ color: 'var(--color-butter)' }}>
-                          {primaryCode.code}
+                        <div className="font-bold text-[18px] tracking-widest" style={{ color: accent }}>
+                          {c.code}
                         </div>
-                        <div className="text-[10px] mt-1" style={{ color: 'oklch(1 0 0 / 0.5)' }}>
-                          {primaryCode.use_count} / {primaryCode.max_uses} usos
+                        <div className="text-[10px] mt-0.5" style={{ color: 'oklch(1 0 0 / 0.45)' }}>
+                          {c.use_count} usos
                         </div>
                       </div>
-                    )}
+                    ))}
                     <button
                       onClick={() => handleGenerateCode(inst.id, inst.name)}
                       disabled={generatingCode === inst.id}
@@ -337,7 +347,7 @@ export default function AdminDashboard() {
                       {generatingCode === inst.id
                         ? <Loader2 size={13} className="animate-spin" />
                         : <RefreshCw size={13} />}
-                      Nuevo código
+                      Nuevos códigos
                     </button>
                   </div>
                 </div>

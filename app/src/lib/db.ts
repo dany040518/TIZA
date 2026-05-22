@@ -449,10 +449,15 @@ export async function createInstitution(fields: Omit<Institution, 'id' | 'create
   return data as Institution;
 }
 
-export async function createInviteCode(institutionId: string, code: string, maxUses = 999) {
+export async function createInviteCode(
+  institutionId: string,
+  code: string,
+  role: 'teacher' | 'coordinator' = 'teacher',
+  maxUses = 99999,
+) {
   const { data, error } = await supabase
     .from('invite_codes')
-    .insert({ institution_id: institutionId, code: code.toUpperCase(), max_uses: maxUses })
+    .insert({ institution_id: institutionId, code: code.toUpperCase(), role, max_uses: maxUses })
     .select()
     .single();
   if (error) throw error;

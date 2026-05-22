@@ -13,8 +13,13 @@ import { Star } from '@/components/tiza/Mark';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const GRADES  = ['Preescolar', 'Primaria', 'Secundaria', 'Media', 'Universidad'];
-const PERIODS = ['2025-1', '2025-2', '2026-1', '2026-2'];
+const GRADES = ['Preescolar', 'Primaria', 'Secundaria', 'Media', 'Universidad'];
+
+function getCurrentPeriod(): string {
+  const now = new Date();
+  const year = now.getFullYear();
+  return now.getMonth() < 6 ? `${year}-1` : `${year}-2`;
+}
 
 const DAYS: { value: DayOfWeek; label: string }[] = [
   { value: 1, label: 'Lun' },
@@ -33,7 +38,7 @@ function emptyForm() {
     name: '',
     subject: '',
     gradeLevel: '',
-    academicPeriod: '',
+    academicPeriod: getCurrentPeriod(),
     description: '',
     days: [] as DayOfWeek[],
     startTime: '',
@@ -134,19 +139,6 @@ function ClassFormModal({
               </select>
             </div>
 
-            {/* Period */}
-            <div>
-              <div className="label mb-1" style={{ color: 'var(--color-mute)' }}>Período (opcional)</div>
-              <select
-                value={form.academicPeriod}
-                onChange={(e) => setForm((f) => ({ ...f, academicPeriod: e.target.value }))}
-                className={inp}
-                style={borderStyle}
-              >
-                <option value="">—</option>
-                {PERIODS.map((p) => <option key={p} value={p}>{p}</option>)}
-              </select>
-            </div>
           </div>
 
           {/* Description */}

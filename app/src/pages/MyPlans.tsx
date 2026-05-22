@@ -355,14 +355,14 @@ function PlanCard({
 
           {/* Actions */}
           <div className="flex items-center gap-1.5 flex-wrap shrink-0">
-            {plan.status === 'draft_saved' && (
+            {(plan.status === 'draft_saved' || plan.status === 'rejected') && (
               <button className="btn-chunky" style={{ padding: '6px 11px', fontSize: 12 }}
-                disabled={busy} onClick={onSubmit} title="Enviar a revisión">
+                disabled={busy} onClick={onSubmit} title={plan.status === 'rejected' ? 'Re-enviar a revisión' : 'Enviar a revisión'}>
                 {busy ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
-                <span className="hidden sm:inline">Enviar</span>
+                <span className="hidden sm:inline">{plan.status === 'rejected' ? 'Re-enviar' : 'Enviar'}</span>
               </button>
             )}
-            {(plan.status === 'approved' || plan.status === 'draft_saved') && (
+            {plan.status === 'approved' && (
               <button className="btn-chunky" style={{ padding: '6px 11px', fontSize: 12 }}
                 onClick={() => downloadPlanPDF(plan)} title="Descargar PDF">
                 <FileDown size={12} />
@@ -372,8 +372,8 @@ function PlanCard({
               onClick={onEdit} title="Editar">
               <Pencil size={12} />
             </button>
-            {/* Only allow linking master plans (not copies) */}
-            {!plan.parent_plan_id && (
+            {/* Link only available for master plans that are approved */}
+            {!plan.parent_plan_id && plan.status === 'approved' && (
               <button className="btn-chunky" style={{ padding: '6px 11px', fontSize: 12 }}
                 onClick={onLink} title="Vincular a clase">
                 <Link2 size={12} />

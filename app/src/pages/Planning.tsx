@@ -1,4 +1,4 @@
-import { Sparkles, FileDown, X, BookmarkCheck, Check } from "lucide-react";
+import { Sparkles, X, BookmarkCheck, Check } from "lucide-react";
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useAuth } from "@/hooks/useAuth";
@@ -6,7 +6,6 @@ import { useProfile } from "@/hooks/useProfile";
 import { saveLessonPlan } from "@/lib/db";
 import { generateLessonPlan } from "@/services/aiService";
 import DashboardLayout from "../components/layouts/DashboardLayout";
-import html2pdf from "html2pdf.js";
 import { Star, Squiggle } from "@/components/tiza/Mark";
 import type { PlanIdea } from "@/types";
 
@@ -102,27 +101,7 @@ export default function Planning() {
     }
   };
 
-  const handleDownloadPDF = () => {
-    const el = document.getElementById("plan-panel");
-    if (!el) return;
-    const clone = el.cloneNode(true) as HTMLElement;
-    clone.style.background = "#ffffff";
-    clone.style.color = "#000000";
-    clone.querySelectorAll("*").forEach((n: Element) => {
-      (n as HTMLElement).style.backgroundColor = "#ffffff";
-      (n as HTMLElement).style.color = "#000000";
-      (n as HTMLElement).style.borderColor = "#e5e7eb";
-    });
-    html2pdf()
-      .from(clone)
-      .set({
-        margin: 0.5,
-        filename: "planeacion-clase.pdf",
-        html2canvas: { scale: 2, useCORS: true },
-        jsPDF: { unit: "in", format: "letter", orientation: "portrait" },
-      })
-      .save();
-  };
+
 
   // ── Render ───────────────────────────────────────────────────
   return (
@@ -454,13 +433,6 @@ export default function Planning() {
                     ) : (
                       <><BookmarkCheck className="w-3.5 h-3.5" /> Guardar planeación</>
                     )}
-                  </button>
-                  <button
-                    onClick={handleDownloadPDF}
-                    className="btn-chunky"
-                    style={{ padding: '8px 14px', fontSize: 12 }}
-                  >
-                    <FileDown className="w-3.5 h-3.5" /> PDF
                   </button>
                   <button
                     onClick={() => setActivePlan(null)}

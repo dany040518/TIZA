@@ -6,14 +6,13 @@ import { validateInviteCode } from '@/lib/db';
 import { Mark, Star, Blob } from '@/components/tiza/Mark';
 
 type Step = 'code' | 'details' | 'success';
-type Role = 'teacher' | 'coordinator';
 
 export default function Register() {
   const [step, setStep]                       = useState<Step>('code');
   const [inviteCode, setInviteCode]           = useState('');
   const [institutionId, setInstitutionId]     = useState('');
   const [institutionName, setInstitutionName] = useState('');
-  const [selectedRole, setSelectedRole]       = useState<Role>('teacher');
+  const [codeRole, setCodeRole]               = useState<'teacher' | 'coordinator'>('teacher');
   const [fullName, setFullName]               = useState('');
   const [email, setEmail]                     = useState('');
   const [password, setPassword]               = useState('');
@@ -35,6 +34,7 @@ export default function Register() {
       }
       setInstitutionId(result.institution_id);
       setInstitutionName(result.institution_name ?? '');
+      setCodeRole((result.role as 'teacher' | 'coordinator') ?? 'teacher');
       setStep('details');
     } catch {
       setError('No se pudo validar el código. Intenta de nuevo.');
@@ -55,7 +55,7 @@ export default function Register() {
           data: {
             full_name: fullName,
             invite_code: inviteCode.trim().toUpperCase(),
-            role: selectedRole,
+            role: codeRole,
           },
         },
       });
@@ -192,31 +192,21 @@ export default function Register() {
                 </button>
               </div>
 
-              {/* Role selector */}
-              <div>
-                <div className="label mb-2" style={{ color: 'var(--color-mute)' }}>Soy…</div>
-                <div className="grid grid-cols-2 gap-3">
-                  {([
-                    { value: 'teacher',     label: 'Docente',      emoji: '✎', desc: 'Crea y gestiona planeaciones de clase' },
-                    { value: 'coordinator', label: 'Coordinador',  emoji: '✦', desc: 'Revisa y aprueba planes de tu institución' },
-                  ] as const).map((opt) => (
-                    <button
-                      key={opt.value}
-                      type="button"
-                      onClick={() => setSelectedRole(opt.value)}
-                      className="sticker p-4 text-left transition-all"
-                      style={{
-                        background: selectedRole === opt.value ? 'var(--color-butter)' : 'var(--color-cream)',
-                        borderWidth: selectedRole === opt.value ? 3 : 2,
-                      }}
-                    >
-                      <div className="font-bold text-[15px] mb-1 flex items-center gap-2">
-                        <span style={{ color: 'var(--color-orange)' }}>{opt.emoji}</span>
-                        {opt.label}
-                      </div>
-                      <div className="text-[11px] font-medium" style={{ color: 'var(--color-mute)' }}>{opt.desc}</div>
-                    </button>
-                  ))}
+              {/* Role badge — determined by invite code */}
+              <div
+                className="sticker p-3 flex items-center gap-3"
+                style={{ background: codeRole === 'coordinator' ? 'var(--color-lilac)' : 'var(--color-butter)' }}
+              >
+                <span style={{ color: 'var(--color-orange)', fontSize: 16 }}>
+                  {codeRole === 'coordinator' ? '✦' : '✎'}
+                </span>
+                <div>
+                  <div className="font-bold text-[13px]">
+                    {codeRole === 'coordinator' ? 'Coordinador' : 'Docente'}
+                  </div>
+                  <div className="text-[11px]" style={{ color: 'var(--color-mute)' }}>
+                    Rol asignado por tu código de acceso
+                  </div>
                 </div>
               </div>
 
