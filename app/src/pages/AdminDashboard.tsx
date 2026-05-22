@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 import DashboardLayout from '@/components/layouts/DashboardLayout';
-import { getInstitutionsWithCodes, createInstitution, createInviteCode } from '@/lib/db';
+import { getInstitutionsWithCodes, createInstitution, createInviteCode, deleteInstitution } from '@/lib/db';
 import type { Institution, InviteCode, InstitutionType } from '@/types';
 import { useToast } from '@/components/Toast';
-import { Loader2, Plus, Building2, RefreshCw } from 'lucide-react';
+import { Loader2, Plus, Building2, Trash2 } from 'lucide-react';
 import { Star } from '@/components/tiza/Mark';
 
 const TYPE_LABEL: Record<InstitutionType, string> = {
@@ -31,10 +31,12 @@ function generateSlug(name: string): string {
     .slice(0, 50);
 }
 
-function generateCode(name: string): string {
-  const base = name.replace(/[^a-zA-Z0-9]/g, '').toUpperCase().slice(0, 5);
-  const suffix = Math.random().toString(36).substring(2, 6).toUpperCase();
-  return `${base}${suffix}`;
+// Estándar: [3 LETRAS][3 DÍGITOS]-T  /  [3 LETRAS][3 DÍGITOS]-C
+// Ej.: COL428-T y COL428-C
+function generateCodePair(name: string): { teacher: string; coordinator: string } {
+  const base = name.replace(/[^a-zA-Z]/g, '').toUpperCase().slice(0, 3).padEnd(3, 'X');
+  const num  = Math.floor(Math.random() * 900 + 100).toString();
+  return { teacher: `${base}${num}-T`, coordinator: `${base}${num}-C` };
 }
 
 type InstitutionWithCodes = Institution & { invite_codes: InviteCode[] };
@@ -44,7 +46,8 @@ export default function AdminDashboard() {
   const [institutions, setInstitutions] = useState<InstitutionWithCodes[]>([]);
   const [loading, setLoading]           = useState(true);
   const [showForm, setShowForm]         = useState(false);
-  const [generatingCode, setGeneratingCode] = useState<string | null>(null);
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [deleting, setDeleting]         = useState(false);
 
   const [name, setName]       = useState('');
   const [type, setType]       = useState<InstitutionType>('secundaria');
@@ -73,9 +76,10 @@ export default function AdminDashboard() {
         country:   country.trim().toUpperCase().slice(0, 2) || 'CO',
         is_active: true,
       });
+      const { teacher: tCode, coordinator: cCode } = generateCodePair(name.trim());
       const [teacherCode, coordCode] = await Promise.all([
-        createInviteCode(inst.id, generateCode(name.trim()), 'teacher'),
-        createInviteCode(inst.id, generateCode(name.trim()), 'coordinator'),
+        createInviteCode(inst.id, tCode, 'teacher'),
+        createInviteCode(inst.id, cCode, 'coordinator'),
       ]);
       setInstitutions((prev) => [{ ...inst, invite_codes: [teacherCode, coordCode] }, ...prev]);
       setShowForm(false);
@@ -90,23 +94,17 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleGenerateCode = async (instId: string, instName: string) => {
-    setGeneratingCode(instId);
+  const handleDelete = async (instId: string) => {
+    setDeleting(true);
     try {
-      const [tc, cc] = await Promise.all([
-        createInviteCode(instId, generateCode(instName), 'teacher'),
-        createInviteCode(instId, generateCode(instName), 'coordinator'),
-      ]);
-      setInstitutions((prev) =>
-        prev.map((i) =>
-          i.id === instId ? { ...i, invite_codes: [...i.invite_codes, tc, cc] } : i,
-        ),
-      );
-      success(`Nuevos códigos · Docente: ${tc.code} · Coordinador: ${cc.code}`);
+      await deleteInstitution(instId);
+      setInstitutions((prev) => prev.filter((i) => i.id !== instId));
+      setConfirmDeleteId(null);
+      success('Institución eliminada.');
     } catch {
-      toastError('No se pudieron generar los códigos.');
+      toastError('No se pudo eliminar la institución.');
     } finally {
-      setGeneratingCode(null);
+      setDeleting(false);
     }
   };
 
@@ -158,10 +156,8 @@ export default function AdminDashboard() {
             </div>
 
             {formError && (
-              <div
-                className="sticker p-3 text-[13px]"
-                style={{ background: 'oklch(0.95 0.06 25)', borderColor: 'oklch(0.55 0.18 25)' }}
-              >
+              <div className="sticker p-3 text-[13px]"
+                style={{ background: 'oklch(0.95 0.06 25)', borderColor: 'oklch(0.55 0.18 25)' }}>
                 {formError}
               </div>
             )}
@@ -178,7 +174,6 @@ export default function AdminDashboard() {
                   style={{ borderColor: 'oklch(0.24 0.06 340 / 0.3)', color: 'var(--color-plum)' }}
                 />
               </div>
-
               <div>
                 <div className="label mb-1" style={{ color: 'var(--color-mute)' }}>Tipo</div>
                 <select
@@ -192,7 +187,6 @@ export default function AdminDashboard() {
                   ))}
                 </select>
               </div>
-
               <div>
                 <div className="label mb-1" style={{ color: 'var(--color-mute)' }}>Ciudad</div>
                 <input
@@ -203,7 +197,6 @@ export default function AdminDashboard() {
                   style={{ borderColor: 'oklch(0.24 0.06 340 / 0.3)', color: 'var(--color-plum)' }}
                 />
               </div>
-
               <div>
                 <div className="label mb-1" style={{ color: 'var(--color-mute)' }}>País (código ISO)</div>
                 <input
@@ -218,26 +211,19 @@ export default function AdminDashboard() {
             </div>
 
             <p className="text-[12px]" style={{ color: 'var(--color-mute)' }}>
-              Se generará automáticamente un código de invitación único para esta institución.
+              Se generarán automáticamente un código para docentes y uno para coordinadores.
             </p>
 
             <div className="flex gap-3 pt-1">
-              <button
-                type="submit"
-                disabled={saving}
+              <button type="submit" disabled={saving}
                 className="btn-chunky btn-chunky-primary"
-                style={{ padding: '12px 20px', fontSize: 14 }}
-              >
-                {saving
-                  ? <><Loader2 size={14} className="animate-spin" />Creando…</>
-                  : <>Crear institución</>}
+                style={{ padding: '12px 20px', fontSize: 14 }}>
+                {saving ? <><Loader2 size={14} className="animate-spin" />Creando…</> : <>Crear institución</>}
               </button>
-              <button
-                type="button"
+              <button type="button"
                 onClick={() => { setShowForm(false); setFormError(''); }}
                 className="btn-chunky"
-                style={{ padding: '12px 20px', fontSize: 14, background: 'var(--color-cream)' }}
-              >
+                style={{ padding: '12px 20px', fontSize: 14 }}>
                 Cancelar
               </button>
             </div>
@@ -265,24 +251,48 @@ export default function AdminDashboard() {
         {/* Institution cards */}
         <div className="space-y-4">
           {institutions.map((inst) => {
-            const teacherCode = inst.invite_codes.filter((c) => c.role === 'teacher').slice(-1)[0];
-            const coordCode   = inst.invite_codes.filter((c) => c.role === 'coordinator').slice(-1)[0];
+            const teacherCode = inst.invite_codes.find((c) => c.role === 'teacher');
+            const coordCode   = inst.invite_codes.find((c) => c.role === 'coordinator');
+            const isConfirming = confirmDeleteId === inst.id;
+
             return (
-              <div
-                key={inst.id}
-                className="sticker p-5"
-                style={{ background: 'var(--color-paper)' }}
-              >
+              <div key={inst.id} className="sticker p-5" style={{ background: 'var(--color-paper)' }}>
+
+                {/* Delete confirmation banner */}
+                {isConfirming && (
+                  <div className="sticker p-4 mb-4 flex flex-wrap items-center gap-3"
+                    style={{ background: 'oklch(0.95 0.06 25)', borderColor: 'oklch(0.55 0.18 25)' }}>
+                    <span className="font-semibold text-[13px] flex-1">
+                      ¿Eliminar <strong>{inst.name}</strong>? Se borrarán todas las clases, estudiantes, planeaciones y asistencias asociadas. Esta acción no se puede deshacer.
+                    </span>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleDelete(inst.id)}
+                        disabled={deleting}
+                        className="btn-chunky"
+                        style={{ padding: '7px 14px', fontSize: 12, background: 'oklch(0.55 0.18 25)', color: 'white' }}
+                      >
+                        {deleting ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
+                        Sí, eliminar
+                      </button>
+                      <button
+                        onClick={() => setConfirmDeleteId(null)}
+                        className="btn-chunky"
+                        style={{ padding: '7px 14px', fontSize: 12 }}
+                      >
+                        Cancelar
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 <div className="flex flex-wrap items-start justify-between gap-4">
 
                   {/* Info */}
                   <div className="flex-1 min-w-0">
                     <div className="flex flex-wrap items-center gap-3 mb-1">
                       <h2 className="font-bold text-[16px] m-0">{inst.name}</h2>
-                      <span
-                        className="chip text-[11px] font-bold"
-                        style={{ background: TYPE_BG[inst.type] }}
-                      >
+                      <span className="chip text-[11px] font-bold" style={{ background: TYPE_BG[inst.type] }}>
                         {TYPE_LABEL[inst.type]}
                       </span>
                       {!inst.is_active && (
@@ -297,57 +307,46 @@ export default function AdminDashboard() {
                         <> · Creada {new Date(inst.created_at).toLocaleDateString('es-CO', { year: 'numeric', month: 'short', day: 'numeric' })}</>
                       )}
                     </div>
-
-                    {/* Invite codes by role */}
-                    {inst.invite_codes.length > 0 && (
-                      <div className="flex flex-wrap gap-2 mt-3">
-                        {(['teacher', 'coordinator'] as const).map((role) => {
-                          const c = inst.invite_codes.filter((x) => x.role === role).slice(-1)[0];
-                          if (!c) return null;
-                          return (
-                            <div key={c.id} className="sticker px-3 py-2" style={{ background: role === 'coordinator' ? 'var(--color-lilac)' : 'var(--color-butter)' }}>
-                              <div className="text-[9px] font-bold tracking-wider uppercase mb-0.5" style={{ color: 'var(--color-mute)' }}>
-                                {role === 'coordinator' ? 'Coordinador' : 'Docente'}
-                              </div>
-                              <div className="font-bold text-[13px] tracking-widest">{c.code}</div>
-                              <div className="text-[10px] mt-0.5" style={{ color: 'var(--color-mute)' }}>
-                                {c.use_count} usos
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
                   </div>
 
-                  {/* Highlighted codes by role */}
-                  <div className="flex flex-col gap-2 shrink-0">
-                    {([
-                      { code: teacherCode, role: 'teacher',      label: 'DOCENTE',      bg: 'var(--color-plum)', accent: 'var(--color-butter)' },
-                      { code: coordCode,   role: 'coordinator',  label: 'COORDINADOR',  bg: 'oklch(0.28 0.08 280)', accent: 'var(--color-lilac)' },
-                    ] as const).map(({ code: c, label, bg, accent }) => c && (
-                      <div key={c.id} className="sticker px-4 py-2.5 text-center" style={{ background: bg }}>
+                  {/* Codes + delete */}
+                  <div className="flex items-start gap-2 shrink-0">
+                    {/* Teacher code */}
+                    {teacherCode && (
+                      <div className="sticker px-4 py-2.5 text-center" style={{ background: 'var(--color-plum)' }}>
                         <div className="text-[9px] font-bold tracking-wider mb-0.5" style={{ color: 'oklch(1 0 0 / 0.45)' }}>
-                          {label}
+                          DOCENTE
                         </div>
-                        <div className="font-bold text-[18px] tracking-widest" style={{ color: accent }}>
-                          {c.code}
+                        <div className="font-bold text-[18px] tracking-widest" style={{ color: 'var(--color-butter)' }}>
+                          {teacherCode.code}
                         </div>
                         <div className="text-[10px] mt-0.5" style={{ color: 'oklch(1 0 0 / 0.45)' }}>
-                          {c.use_count} usos
+                          {teacherCode.use_count} usos
                         </div>
                       </div>
-                    ))}
+                    )}
+                    {/* Coordinator code */}
+                    {coordCode && (
+                      <div className="sticker px-4 py-2.5 text-center" style={{ background: 'oklch(0.28 0.08 280)' }}>
+                        <div className="text-[9px] font-bold tracking-wider mb-0.5" style={{ color: 'oklch(1 0 0 / 0.45)' }}>
+                          COORDINADOR
+                        </div>
+                        <div className="font-bold text-[18px] tracking-widest" style={{ color: 'var(--color-lilac)' }}>
+                          {coordCode.code}
+                        </div>
+                        <div className="text-[10px] mt-0.5" style={{ color: 'oklch(1 0 0 / 0.45)' }}>
+                          {coordCode.use_count} usos
+                        </div>
+                      </div>
+                    )}
+                    {/* Delete button */}
                     <button
-                      onClick={() => handleGenerateCode(inst.id, inst.name)}
-                      disabled={generatingCode === inst.id}
+                      onClick={() => setConfirmDeleteId(isConfirming ? null : inst.id)}
                       className="btn-chunky"
-                      style={{ padding: '7px 12px', fontSize: 12 }}
+                      style={{ padding: '8px 10px', background: isConfirming ? 'oklch(0.95 0.06 25)' : undefined }}
+                      title="Eliminar institución"
                     >
-                      {generatingCode === inst.id
-                        ? <Loader2 size={13} className="animate-spin" />
-                        : <RefreshCw size={13} />}
-                      Nuevos códigos
+                      <Trash2 size={14} style={{ color: isConfirming ? 'oklch(0.55 0.18 25)' : 'var(--color-mute)' }} />
                     </button>
                   </div>
                 </div>

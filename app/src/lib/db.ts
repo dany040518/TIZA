@@ -464,6 +464,11 @@ export async function createInviteCode(
   return data as InviteCode;
 }
 
+export async function deleteInstitution(institutionId: string) {
+  const { error } = await supabase.rpc('delete_institution_cascade', { p_institution_id: institutionId });
+  if (error) throw error;
+}
+
 // ── Bug Reports ────────────────────────────────────────────────
 export async function submitBugReport(report: Omit<BugReport, 'id' | 'created_at'>) {
   const { error } = await supabase.from('bug_reports').insert(report);
