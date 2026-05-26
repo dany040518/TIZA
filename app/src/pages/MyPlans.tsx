@@ -492,11 +492,12 @@ function PlanCard({
               onClick={onEdit} title="Editar">
               <Pencil size={12} />
             </button>
-            {/* Vincular: disponible para planeaciones maestras (sin parent) */}
-            {!plan.parent_plan_id && plan.status === 'approved' && (
+            {/* Vincular: disponible para cualquier planeación maestra */}
+            {!plan.parent_plan_id && (
               <button className="btn-chunky" style={{ padding: '6px 11px', fontSize: 12 }}
                 onClick={onLink} title="Vincular a clase">
                 <Link2 size={12} />
+                <span className="hidden sm:inline">Vincular</span>
               </button>
             )}
             <button className="btn-chunky" style={{ padding: '6px 11px', fontSize: 12 }}
