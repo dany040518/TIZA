@@ -11,7 +11,6 @@ Seguir un plan de pruebas manuales estructurado que cubra los flujos principales
 - [Pass] Contar con credenciales de prueba para:
   - Docente
   - Coordinador
-  - Admin
 - [Pass] Tener a la mano códigos de invitación o datos de institución si es necesario para registro
 - [Pass] Tener una hoja o herramienta para registrar resultados y observaciones
 
