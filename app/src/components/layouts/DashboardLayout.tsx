@@ -29,8 +29,12 @@ const adminTabs = [
 ] as const;
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
-  const { displayName } = useAuth();
+  const { user, displayName } = useAuth();
   const { profile } = useProfile();
+
+  // Prefiere el nombre guardado en la DB (app_users.full_name) sobre el
+  // metadata de auth, para reflejar actualizaciones del perfil en tiempo real.
+  const headerName = profile?.full_name || displayName || user?.email || 'Docente';
   const location = useLocation();
   const navigate = useNavigate();
   const [bugOpen, setBugOpen] = useState(false);
@@ -41,8 +45,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     profile?.role === 'coordinator' ? coordinatorTabs :
     teacherTabs;
 
-  const initials = displayName
-    ? displayName.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
+  const initials = headerName
+    ? headerName.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
     : 'T';
 
   const handleLogout = async () => {
@@ -101,7 +105,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               {initials}
             </span>
             <div className="leading-tight">
-              <div className="font-semibold text-[12px]">{displayName || 'Docente'}</div>
+              <div className="font-semibold text-[12px]">{headerName}</div>
               <div className="text-[10px]" style={{ color: 'var(--color-mute)' }}>Mi cuenta</div>
             </div>
           </Link>
