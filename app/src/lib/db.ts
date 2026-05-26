@@ -89,7 +89,7 @@ export async function duplicateLessonPlan(plan: LessonPlan, classId?: string): P
     .insert({
       ...rest,
       title: classId ? rest.title : `${rest.title} (copia)`,
-      parent_plan_id: plan.id ?? null,
+      parent_plan_id: classId ? (plan.id ?? null) : null,
       class_id: classId ?? null,
       status: 'draft_saved' as PlanStatus,
       coordinator_comment: null,

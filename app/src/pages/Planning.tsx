@@ -106,10 +106,10 @@ export default function Planning() {
   // ── Render ───────────────────────────────────────────────────
   return (
     <DashboardLayout>
-      <main className="mx-auto max-w-[1320px] px-6 md:px-10 py-10">
+      <main className="mx-auto max-w-[1320px] px-4 sm:px-6 md:px-10 py-7 sm:py-10">
 
         {/* ── Page header ─────────────────────────────────────── */}
-        <div className="mb-10">
+        <div className="mb-7 sm:mb-10">
           <span className="label" style={{ color: 'var(--color-mute)' }}>— laboratorio de planeación</span>
           <h1 className="font-display mt-3" style={{ fontSize: 'clamp(34px, 5vw, 56px)' }}>
             Genera tu{' '}
@@ -127,7 +127,7 @@ export default function Planning() {
 
           {/* LEFT: Input canvas */}
           <div>
-            <div className="sticker sticker-lg notebook p-7 space-y-6 sticky top-4">
+            <div className="sticker sticker-lg notebook p-5 sm:p-7 space-y-5 sm:space-y-6 sm:sticky sm:top-4">
 
               {/* Topic */}
               <div>

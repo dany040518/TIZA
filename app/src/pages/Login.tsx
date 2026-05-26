@@ -53,7 +53,7 @@ export default function Login() {
         style={{ bottom: -120, left: -100, width: 360, height: 360, transform: 'rotate(-15deg)', opacity: 0.6 }}
       />
 
-      <header className="mx-auto max-w-[1200px] px-6 md:px-10 pt-8 flex items-center justify-between">
+      <header className="mx-auto max-w-[1200px] px-4 sm:px-6 md:px-10 pt-6 sm:pt-8 flex items-center justify-between">
         <Mark to="/login" />
         <div className="flex items-center gap-4">
           <span className="label hidden md:block" style={{ color: 'var(--color-mute)' }}>Acceso seguro</span>
@@ -63,22 +63,22 @@ export default function Login() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-[1200px] px-6 md:px-10 mt-12 grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] gap-10 items-start pb-20">
+      <main className="mx-auto max-w-[1200px] px-4 sm:px-6 md:px-10 mt-8 sm:mt-12 grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] gap-8 lg:gap-10 items-start pb-12 sm:pb-20">
 
-        <section className="sticker sticker-lg p-8 md:p-12" style={{ background: 'var(--color-paper)' }}>
+        <section className="sticker p-5 sm:p-8 md:p-12" style={{ background: 'var(--color-paper)' }}>
           <div className="flex items-center gap-3">
             <Star size={26} fill="var(--color-orange)" />
             <span className="label" style={{ color: 'var(--color-mute)' }}>bienvenido de vuelta</span>
           </div>
-          <h1 className="font-display mt-6 m-0" style={{ fontSize: 'clamp(36px, 5.5vw, 60px)' }}>
+          <h1 className="font-display mt-4 sm:mt-6 m-0" style={{ fontSize: 'clamp(30px, 5.5vw, 60px)' }}>
             Entra a tu{' '}
             <span className="serif-em" style={{ color: 'var(--color-orange)' }}>espacio</span>.
           </h1>
-          <p className="mt-4 text-[16px] font-medium" style={{ color: 'var(--color-mute)', lineHeight: 1.5 }}>
+          <p className="mt-3 text-[14px] sm:text-[16px] font-medium" style={{ color: 'var(--color-mute)', lineHeight: 1.5 }}>
             Diseñado para el ritmo real de los educadores.
           </p>
 
-          <form onSubmit={handleLogin} className="mt-10 space-y-6">
+          <form onSubmit={handleLogin} className="mt-7 sm:mt-10 space-y-5 sm:space-y-6">
             {error && (
               <div
                 className="sticker p-4 text-[13px]"
@@ -97,7 +97,7 @@ export default function Login() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="valentina@escuela.edu"
-                className="w-full bg-transparent border-0 border-b py-2.5 text-[17px] focus:outline-none transition-colors"
+                className="w-full bg-transparent border-0 border-b py-2.5 text-[16px] sm:text-[17px] focus:outline-none transition-colors"
                 style={{ borderColor: 'oklch(0.24 0.06 340 / 0.3)', color: 'var(--color-plum)' }}
               />
             </div>
@@ -121,7 +121,7 @@ export default function Login() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full bg-transparent border-0 border-b py-2.5 text-[17px] focus:outline-none transition-colors pr-10"
+                  className="w-full bg-transparent border-0 border-b py-2.5 text-[16px] sm:text-[17px] focus:outline-none transition-colors pr-10"
                   style={{ borderColor: 'oklch(0.24 0.06 340 / 0.3)', color: 'var(--color-plum)' }}
                 />
                 <button
@@ -141,7 +141,7 @@ export default function Login() {
                 type="submit"
                 disabled={loading}
                 className="btn-chunky btn-chunky-primary w-full justify-center"
-                style={{ padding: '16px 24px', fontSize: 15 }}
+                style={{ padding: '14px 24px', fontSize: 14 }}
               >
                 {loading ? <><span className="ink-pulse" />Entrando…</> : <>Iniciar sesión →</>}
               </button>
@@ -156,7 +156,7 @@ export default function Login() {
           </p>
         </section>
 
-        <aside className="space-y-5 hidden lg:block">
+        <aside className="space-y-4 sm:space-y-5 hidden lg:block">
           <div className="sticker p-7" style={{ background: 'var(--color-blush)' }}>
             <div className="font-hand mb-3" style={{ fontSize: 26, color: 'var(--color-orange)' }}>testimonio ✿</div>
             <p className="serif-em text-[18px]" style={{ lineHeight: 1.6, color: 'var(--color-plum)' }}>
