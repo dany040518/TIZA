@@ -170,7 +170,16 @@ function downloadPlanPDF(plan: LessonPlan, linkedClass?: Class) {
   html2pdf().from(el).set({
     margin: [0.4, 0.5, 0.5, 0.5],
     filename: `tiza-planeacion-${c.title.toLowerCase().replace(/\s+/g, '-')}.pdf`,
-    html2canvas: { scale: 2, useCORS: true, logging: false },
+    html2canvas: {
+      scale: 2,
+      useCORS: true,
+      logging: false,
+      // html2canvas no soporta oklch(). Removemos todos los stylesheets
+      // del documento clonado antes de renderizar para evitar el error de parseo.
+      onclone: (_doc: Document) => {
+        _doc.querySelectorAll('style, link[rel="stylesheet"]').forEach((el) => el.remove());
+      },
+    },
     jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' },
   }).save();
 }

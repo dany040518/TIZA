@@ -6,6 +6,7 @@ import type { AppUser } from '@/types';
 import DashboardLayout from '@/components/layouts/DashboardLayout';
 import { Loader2, Save, Check } from 'lucide-react';
 import { Star } from '@/components/tiza/Mark';
+import { useToast } from '@/components/Toast';
 import { supabase } from '@/lib/supabaseClient';
 import { useNavigate } from 'react-router-dom';
 
@@ -23,8 +24,9 @@ const ROLE_BG: Record<string, string> = {
 
 export default function Account() {
   const { user } = useAuth();
-  const { profile, loading } = useProfile();
+  const { profile, refresh, loading } = useProfile();
   const navigate = useNavigate();
+  const { success, error: toastError } = useToast();
 
   const [fullName, setFullName]       = useState('');
   const [phone, setPhone]             = useState('');
@@ -32,6 +34,7 @@ export default function Account() {
   const [saving, setSaving]           = useState(false);
   const [saved, setSaved]             = useState(false);
 
+  // Populate form when profile loads
   useEffect(() => {
     if (!profile) return;
     setFullName(profile.full_name ?? '');
@@ -45,18 +48,29 @@ export default function Account() {
   const handleSave = async (e: React.BaseSyntheticEvent) => {
     e.preventDefault();
     if (!user) return;
+
+    const trimmedName = fullName.trim();
+    if (!trimmedName) {
+      toastError('El nombre completo no puede estar vacío.');
+      return;
+    }
+
     setSaving(true);
     setSaved(false);
     try {
       await updateAppUser(user.id, {
-        full_name:    fullName.trim() || undefined,
-        phone:        phone.trim()    || undefined,
-        subject_area: subjectArea.trim() || undefined,
+        full_name:    trimmedName,
+        // null limpia el campo en DB; undefined lo omite (no lo toca)
+        phone:        phone.trim() !== '' ? phone.trim() : null,
+        subject_area: subjectArea.trim() !== '' ? subjectArea.trim() : null,
       });
       setSaved(true);
+      refresh(); // actualiza el perfil en toda la app (header, etc.)
       setTimeout(() => setSaved(false), 3000);
+      success('Perfil actualizado correctamente.');
     } catch (err) {
-      console.error(err);
+      console.error('[Account] updateAppUser error:', err);
+      toastError('No se pudo guardar el perfil. Intenta de nuevo.');
     } finally {
       setSaving(false);
     }

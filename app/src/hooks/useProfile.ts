@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from './useAuth';
 import type { AppUser } from '@/types';
@@ -8,6 +8,16 @@ export function useProfile() {
   const [profile, setProfile] = useState<AppUser | null>(null);
   const [loading, setLoading] = useState(true);
 
+  const fetchProfile = useCallback(async (userId: string) => {
+    const { data, error } = await supabase
+      .from('app_users')
+      .select('*')
+      .eq('id', userId)
+      .single();
+    if (!error && data) setProfile(data as AppUser);
+    setLoading(false);
+  }, []);
+
   useEffect(() => {
     if (authLoading) return;
     if (!user) {
@@ -15,17 +25,12 @@ export function useProfile() {
       setLoading(false);
       return;
     }
+    fetchProfile(user.id);
+  }, [user, authLoading, fetchProfile]);
 
-    supabase
-      .from('app_users')
-      .select('*')
-      .eq('id', user.id)
-      .single()
-      .then(({ data, error }) => {
-        if (!error && data) setProfile(data as AppUser);
-        setLoading(false);
-      });
-  }, [user, authLoading]);
+  const refresh = useCallback(() => {
+    if (user) fetchProfile(user.id);
+  }, [user, fetchProfile]);
 
-  return { profile, loading: authLoading || loading };
+  return { profile, setProfile, refresh, loading: authLoading || loading };
 }
