@@ -592,7 +592,8 @@ export default function MyPlans() {
     ]).then(([p, c]) => {
       setPlans(p);
       setClasses(c);
-    }).finally(() => setLoading(false));
+    }).catch(() => toastError('Error al cargar las planeaciones. Recarga la página.')
+    ).finally(() => setLoading(false));
   }, [user]);
 
   // ── Filtered plans ─────────────────────────────────────────

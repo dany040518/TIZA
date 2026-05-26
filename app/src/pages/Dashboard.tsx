@@ -168,6 +168,7 @@ export default function Dashboard() {
     ]).then(([p, c]) => {
       setPlans(p);
       setClasses(c);
+    }).catch(() => {/* muestra estado vacío, sin bloquear UI */
     }).finally(() => setLoading(false));
   }, [user]);
 

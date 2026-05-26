@@ -7,6 +7,7 @@ import { saveLessonPlan } from "@/lib/db";
 import { generateLessonPlan } from "@/services/aiService";
 import DashboardLayout from "../components/layouts/DashboardLayout";
 import { Star, Squiggle } from "@/components/tiza/Mark";
+import { useToast } from "@/components/Toast";
 import type { PlanIdea } from "@/types";
 
 // ── Phase accent colors ──────────────────────────────────────
@@ -26,6 +27,7 @@ const ideaColors = [
 export default function Planning() {
   const { user } = useAuth();
   const { profile } = useProfile();
+  const { error: toastError, success: toastSuccess } = useToast();
 
   const [subject, setSubject]       = useState("");
   const [grade, setGrade]           = useState("");
@@ -63,6 +65,7 @@ export default function Planning() {
       }
     } catch (err) {
       console.error("Generation error:", err);
+      toastError('No se pudo generar la planeación. Verifica tu conexión e intenta de nuevo.');
     } finally {
       setLoading(false);
     }
@@ -93,9 +96,11 @@ export default function Planning() {
         content:        activePlan,
       });
       setSaved(true);
+      toastSuccess('Planeación guardada correctamente.');
       setTimeout(() => setSaved(false), 3000);
     } catch (err) {
       console.error("Save error:", err);
+      toastError('No se pudo guardar la planeación. Intenta de nuevo.');
     } finally {
       setSaving(false);
     }

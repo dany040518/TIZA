@@ -84,7 +84,8 @@ export default function WeeklyView() {
     if (!user) return;
     getClasses(user.id)
       .then(setClasses)
-      .finally(() => setLoading(false));
+      .catch(() => {/* muestra calendario vacío, sin bloquear UI */
+      }).finally(() => setLoading(false));
   }, [user]);
 
   const events = buildWeeklyEvents(classes);

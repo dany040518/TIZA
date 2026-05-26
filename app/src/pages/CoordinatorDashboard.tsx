@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useProfile } from '@/hooks/useProfile';
 import { getPendingPlans, reviewLessonPlan, getProfile } from '@/lib/db';
+import { useToast } from '@/components/Toast';
 import type { LessonPlan, PlanStatus, AppUser } from '@/types';
 import DashboardLayout from '@/components/layouts/DashboardLayout';
 import { Loader2, Check, X, ChevronDown, ChevronUp } from 'lucide-react';
@@ -24,6 +25,7 @@ type Filter = 'all' | 'pending_review' | 'approved' | 'rejected';
 
 export default function CoordinatorDashboard() {
   const { profile } = useProfile();
+  const { error: toastError, success } = useToast();
 
   const [plans, setPlans]       = useState<LessonPlan[]>([]);
   const [teachers, setTeachers] = useState<Record<string, AppUser>>({});
@@ -55,8 +57,10 @@ export default function CoordinatorDashboard() {
       setPlans((prev) => prev.map((p) => (p.id === planId ? updated : p)));
       setExpanded(null);
       setComment('');
+      success(decision === 'approved' ? 'Planeación aprobada.' : 'Planeación rechazada.');
     } catch (err) {
       console.error(err);
+      toastError('No se pudo registrar la revisión. Intenta de nuevo.');
     } finally {
       setBusy(null);
     }
