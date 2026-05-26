@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+// TIZA - Funcionalidad pausada temporalmente. No eliminar.
+// import { Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useProfile } from '@/hooks/useProfile';
 import { useToast } from '@/components/Toast';
@@ -8,7 +9,8 @@ import {
 } from '@/lib/db';
 import type { Class, DayOfWeek } from '@/types';
 import DashboardLayout from '@/components/layouts/DashboardLayout';
-import { Loader2, Plus, Trash2, Users, CalendarCheck, Pencil, Archive, ArchiveRestore, Clock } from 'lucide-react';
+// TIZA - Users y CalendarCheck pausados con módulos Estudiantes/Asistencia. No eliminar.
+import { Loader2, Plus, Trash2, /* Users, CalendarCheck, */ Pencil, Archive, ArchiveRestore, Clock } from 'lucide-react';
 import { Star } from '@/components/tiza/Mark';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -487,7 +489,10 @@ export default function Classes() {
 
                 {/* Actions */}
                 <div className="flex items-center gap-2 flex-wrap">
-                  {!cls.is_archived && (
+                  {/* TIZA - Funcionalidad pausada temporalmente. No eliminar. */}
+                  {/* Los módulos Estudiantes y Asistencia están pausados.
+                      Para reactivar: descomentar el bloque a continuación. */}
+                  {/* {!cls.is_archived && (
                     <>
                       <Link
                         to={`/classes/${cls.id}/students`}
@@ -506,7 +511,7 @@ export default function Classes() {
                         <span className="hidden sm:inline">Asistencia</span>
                       </Link>
                     </>
-                  )}
+                  )} */}
                   <button
                     className="btn-chunky"
                     style={{ padding: '7px 10px', fontSize: 12 }}

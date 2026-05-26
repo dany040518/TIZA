@@ -6,17 +6,20 @@ interface MarkProps {
 }
 
 export function Mark({ to = '/dashboard', size = 28 }: MarkProps) {
+  const logoSize = size * 1.15;
   return (
     <Link
       to={to}
-      className="inline-flex items-center gap-2 no-underline font-bold"
+      className="inline-flex items-center gap-2.5 no-underline font-bold"
       style={{ fontSize: size, lineHeight: 1, letterSpacing: '-0.03em', color: 'var(--color-plum)' }}
     >
-      <svg width={size * 0.95} height={size * 0.95} viewBox="0 0 40 40" aria-hidden>
-        <circle cx="20" cy="20" r="17" fill="var(--color-orange)" stroke="var(--color-plum)" strokeWidth="2.5"/>
-        <path d="M11 17 L29 17 M20 17 L20 29" stroke="var(--color-plum)" strokeWidth="3" strokeLinecap="round"/>
-        <circle cx="29" cy="13" r="3" fill="var(--color-blush)" stroke="var(--color-plum)" strokeWidth="2"/>
-      </svg>
+      <img
+        src="/icon-192.png"
+        alt="TIZA logo"
+        width={logoSize}
+        height={logoSize}
+        style={{ objectFit: 'contain', display: 'block', flexShrink: 0 }}
+      />
       <span style={{ letterSpacing: '-0.04em' }}>tiza</span>
     </Link>
   );

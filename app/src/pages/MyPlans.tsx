@@ -35,31 +35,142 @@ const STATUS_BG: Record<PlanStatus, string> = {
 const ALL_STATUSES: PlanStatus[] = ['draft_saved', 'pending_review', 'approved', 'rejected'];
 
 // ── PDF export ────────────────────────────────────────────────────────────────
+// Disponible para todos los estados de la planeación (borrador, revisión, aprobada, rechazada).
+// Incluye información de la clase vinculada si existe.
 
-function downloadPlanPDF(plan: LessonPlan) {
+function downloadPlanPDF(plan: LessonPlan, linkedClass?: Class) {
   const c = plan.content;
+  const meta = [plan.subject, plan.grade, plan.topic].filter(Boolean).join(' · ');
+  const statusLabels: Record<string, string> = {
+    draft_saved:    'Borrador',
+    pending_review: 'En revisión',
+    approved:       'Aprobada',
+    rejected:       'Rechazada',
+  };
+
   const el = document.createElement('div');
-  el.style.cssText = 'font-family:Arial,sans-serif;padding:32px;color:#000;background:#fff;';
+  el.style.cssText = 'font-family:Georgia,serif;padding:48px 56px;color:#1a1a2e;background:#fff;max-width:800px;';
   el.innerHTML = `
-    <h1 style="font-size:22px;margin:0 0 4px">${c.title}</h1>
-    <p style="color:#666;margin:0 0 16px;font-size:13px">${[plan.subject, plan.grade, plan.topic].filter(Boolean).join(' · ')}</p>
-    ${plan.objectives ? `<p style="margin:0 0 8px"><strong>Objetivos:</strong> ${plan.objectives}</p>` : ''}
-    <p style="margin:0 0 8px"><strong>Objetivo principal:</strong> ${c.objective}</p>
-    <p style="margin:0 0 8px"><strong>Descripción:</strong> ${c.description}</p>
-    <p style="margin:0 0 16px"><strong>Duración:</strong> ${c.duration} min</p>
-    ${plan.methodology ? `<p style="margin:0 0 8px"><strong>Metodología:</strong> ${plan.methodology}</p>` : ''}
-    <h3 style="font-size:14px;margin:0 0 8px">Materiales</h3>
-    <ul style="margin:0 0 16px;padding-left:20px">${c.materials.map((m) => `<li>${m}</li>`).join('')}</ul>
-    <h3 style="font-size:14px;margin:0 0 8px">Secuencia</h3>
-    ${c.sequence.map((s) => `<div style="margin-bottom:10px;padding:10px;border:1px solid #e5e7eb;border-radius:6px"><strong>${s.phase}</strong> (${s.duration} min)<br/>${s.description}</div>`).join('')}
-    <h3 style="font-size:14px;margin:16px 0 8px">Evaluación</h3>
-    <p style="margin:0 0 16px">${c.evaluation}</p>
-    ${plan.observations ? `<p style="margin:0"><strong>Observaciones:</strong> ${plan.observations}</p>` : ''}
+    <!-- Encabezado TIZA -->
+    <div style="display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid #ec7a8a;padding-bottom:16px;margin-bottom:28px;">
+      <div>
+        <div style="font-family:Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#888;margin-bottom:4px;">
+          Planeación de Clase · TIZA
+        </div>
+        <h1 style="font-family:Arial,sans-serif;font-size:24px;font-weight:800;margin:0;letter-spacing:-0.02em;color:#1a1a2e;">${c.title}</h1>
+        ${meta ? `<p style="font-family:Arial,sans-serif;color:#666;margin:6px 0 0;font-size:13px;">${meta}</p>` : ''}
+      </div>
+      <div style="text-align:right;">
+        <div style="font-family:Arial,sans-serif;font-size:11px;background:#f0f0f0;padding:4px 10px;border-radius:20px;display:inline-block;color:#555;font-weight:600;">
+          ${statusLabels[plan.status] ?? plan.status}
+        </div>
+        <div style="font-family:Arial,sans-serif;font-size:11px;color:#aaa;margin-top:6px;">
+          ${plan.created_at ? new Date(plan.created_at).toLocaleDateString('es-CO', { year:'numeric', month:'long', day:'numeric' }) : ''}
+        </div>
+      </div>
+    </div>
+
+    <!-- Clase vinculada (si existe) -->
+    ${linkedClass ? `
+    <div style="background:#f9e1ee;border:2px solid #ec7a8a;border-radius:10px;padding:14px 18px;margin-bottom:24px;">
+      <div style="font-family:Arial,sans-serif;font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#ec7a8a;margin-bottom:6px;">Clase Vinculada</div>
+      <div style="font-family:Arial,sans-serif;font-size:17px;font-weight:700;color:#1a1a2e;">${linkedClass.name}</div>
+      <div style="font-family:Arial,sans-serif;font-size:13px;color:#555;margin-top:3px;">
+        ${[linkedClass.subject, linkedClass.grade_level, linkedClass.academic_period].filter(Boolean).join(' · ')}
+      </div>
+      ${(linkedClass.start_time && linkedClass.end_time) ? `
+      <div style="font-family:Arial,sans-serif;font-size:12px;color:#888;margin-top:4px;">
+        Horario: ${linkedClass.start_time} – ${linkedClass.end_time}
+      </div>` : ''}
+    </div>` : ''}
+
+    <!-- Objetivo principal -->
+    <div style="margin-bottom:20px;">
+      <div style="font-family:Arial,sans-serif;font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#888;margin-bottom:8px;">Objetivo Principal</div>
+      <p style="font-size:15px;line-height:1.6;margin:0;color:#1a1a2e;">${c.objective}</p>
+    </div>
+
+    <!-- Descripción -->
+    <div style="margin-bottom:20px;">
+      <div style="font-family:Arial,sans-serif;font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#888;margin-bottom:8px;">Descripción / Contenidos</div>
+      <p style="font-size:14px;line-height:1.6;margin:0;color:#333;">${c.description}</p>
+    </div>
+
+    <!-- Duración y Tipo -->
+    <div style="display:flex;gap:16px;margin-bottom:24px;">
+      <div style="background:#f5f5f5;border-radius:8px;padding:10px 16px;">
+        <div style="font-family:Arial,sans-serif;font-size:10px;font-weight:700;text-transform:uppercase;color:#888;margin-bottom:2px;">Duración</div>
+        <div style="font-family:Arial,sans-serif;font-size:16px;font-weight:700;color:#1a1a2e;">${c.duration} min</div>
+      </div>
+      ${c.type ? `<div style="background:#f5f5f5;border-radius:8px;padding:10px 16px;">
+        <div style="font-family:Arial,sans-serif;font-size:10px;font-weight:700;text-transform:uppercase;color:#888;margin-bottom:2px;">Tipo</div>
+        <div style="font-family:Arial,sans-serif;font-size:16px;font-weight:700;color:#1a1a2e;">${c.type}</div>
+      </div>` : ''}
+    </div>
+
+    ${plan.objectives ? `
+    <!-- Objetivos específicos -->
+    <div style="margin-bottom:20px;">
+      <div style="font-family:Arial,sans-serif;font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#888;margin-bottom:8px;">Objetivos Específicos</div>
+      <p style="font-size:14px;line-height:1.6;margin:0;color:#333;">${plan.objectives}</p>
+    </div>` : ''}
+
+    ${plan.methodology ? `
+    <!-- Metodología -->
+    <div style="margin-bottom:20px;">
+      <div style="font-family:Arial,sans-serif;font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#888;margin-bottom:8px;">Metodología</div>
+      <p style="font-size:14px;line-height:1.6;margin:0;color:#333;">${plan.methodology}</p>
+    </div>` : ''}
+
+    <!-- Secuencia de clase -->
+    <div style="margin-bottom:24px;">
+      <div style="font-family:Arial,sans-serif;font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#888;margin-bottom:12px;">Secuencia de Clase</div>
+      ${c.sequence.map((s, i) => `
+      <div style="display:flex;gap:14px;margin-bottom:14px;">
+        <div style="font-family:Arial,sans-serif;font-weight:700;font-size:11px;color:#ec7a8a;min-width:24px;padding-top:2px;">0${i+1}</div>
+        <div style="flex:1;border-left:2px solid #ec7a8a;padding-left:14px;">
+          <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:4px;">
+            <strong style="font-family:Arial,sans-serif;font-size:13px;color:#1a1a2e;">${s.phase}</strong>
+            <span style="font-family:monospace;font-size:11px;color:#888;">${s.duration} min</span>
+          </div>
+          <p style="font-size:13px;line-height:1.55;margin:0;color:#444;">${s.description}</p>
+        </div>
+      </div>`).join('')}
+    </div>
+
+    ${c.materials?.length > 0 ? `
+    <!-- Materiales -->
+    <div style="margin-bottom:20px;">
+      <div style="font-family:Arial,sans-serif;font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#888;margin-bottom:8px;">Materiales</div>
+      <ul style="margin:0;padding-left:20px;column-count:2;column-gap:24px;">
+        ${c.materials.map((m) => `<li style="font-size:13px;color:#333;margin-bottom:4px;">${m}</li>`).join('')}
+      </ul>
+    </div>` : ''}
+
+    <!-- Evaluación -->
+    <div style="background:#f9e1ee;border-radius:10px;padding:16px 20px;margin-bottom:20px;">
+      <div style="font-family:Arial,sans-serif;font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#ec7a8a;margin-bottom:8px;">Evaluación</div>
+      <p style="font-size:14px;font-style:italic;line-height:1.65;margin:0;color:#333;">"${c.evaluation}"</p>
+    </div>
+
+    ${plan.observations ? `
+    <!-- Observaciones -->
+    <div style="margin-bottom:0;">
+      <div style="font-family:Arial,sans-serif;font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#888;margin-bottom:8px;">Observaciones</div>
+      <p style="font-size:13px;line-height:1.6;margin:0;color:#555;">${plan.observations}</p>
+    </div>` : ''}
+
+    <!-- Footer -->
+    <div style="margin-top:40px;padding-top:16px;border-top:1px solid #e5e5e5;font-family:Arial,sans-serif;font-size:10px;color:#aaa;display:flex;justify-content:space-between;">
+      <span>Generado con TIZA — planeación inteligente para docentes</span>
+      <span>${new Date().toLocaleDateString('es-CO')}</span>
+    </div>
   `;
+
   html2pdf().from(el).set({
-    margin: 0.5,
-    filename: `planeacion-${c.title.toLowerCase().replace(/\s+/g, '-')}.pdf`,
-    html2canvas: { scale: 2 },
+    margin: [0.4, 0.5, 0.5, 0.5],
+    filename: `tiza-planeacion-${c.title.toLowerCase().replace(/\s+/g, '-')}.pdf`,
+    html2canvas: { scale: 2, useCORS: true, logging: false },
     jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' },
   }).save();
 }
@@ -362,17 +473,17 @@ function PlanCard({
                 <span className="hidden sm:inline">{plan.status === 'rejected' ? 'Re-enviar' : 'Enviar'}</span>
               </button>
             )}
-            {plan.status === 'approved' && (
-              <button className="btn-chunky" style={{ padding: '6px 11px', fontSize: 12 }}
-                onClick={() => downloadPlanPDF(plan)} title="Descargar PDF">
-                <FileDown size={12} />
-              </button>
-            )}
+            {/* PDF disponible para todos los estados — sin restricción de aprobación */}
+            <button className="btn-chunky" style={{ padding: '6px 11px', fontSize: 12 }}
+              onClick={() => downloadPlanPDF(plan, linkedClass ?? undefined)} title="Descargar PDF">
+              <FileDown size={12} />
+              <span className="hidden sm:inline">PDF</span>
+            </button>
             <button className="btn-chunky" style={{ padding: '6px 11px', fontSize: 12 }}
               onClick={onEdit} title="Editar">
               <Pencil size={12} />
             </button>
-            {/* Link only available for master plans that are approved */}
+            {/* Vincular: disponible para planeaciones maestras (sin parent) */}
             {!plan.parent_plan_id && plan.status === 'approved' && (
               <button className="btn-chunky" style={{ padding: '6px 11px', fontSize: 12 }}
                 onClick={onLink} title="Vincular a clase">

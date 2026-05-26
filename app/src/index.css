@@ -27,13 +27,19 @@
   --color-mute:       oklch(0.5   0.04  340);
   --color-mute-soft:  oklch(0.65  0.04  340);
 
-  /* ── Accents ─────────────────────────────────────────────── */
-  --color-orange: oklch(0.7  0.19 38);
-  --color-blush:  oklch(0.91 0.06 350);
-  --color-butter: oklch(0.9  0.13 95);
-  --color-mint:   oklch(0.88 0.08 155);
-  --color-lilac:  oklch(0.85 0.07 305);
-  --color-sky:    oklch(0.88 0.06 230);
+  /* ── Accents — paleta oficial TIZA ─────────────────────── */
+  /* coral rose #ec7a8a → acento principal / CTAs */
+  --color-orange: oklch(0.67 0.13 12);
+  /* light pink #f9e1ee → fondo suave, chips blush */
+  --color-blush:  oklch(0.93 0.03 350);
+  /* light peach #fcccbd → fondo cálido secundario */
+  --color-butter: oklch(0.88 0.05 32);
+  /* lavender-blue #b3bbd8 → fondo frío suave */
+  --color-mint:   oklch(0.80 0.04 260);
+  /* muted salmon #eea59e → acento terciario */
+  --color-lilac:  oklch(0.82 0.06 18);
+  /* steel blue #7397c1 → estructural, chips de clase */
+  --color-sky:    oklch(0.87 0.05 243);
 
   /* ── Subtle separators (backward-compat aliases) ─────────── */
   --color-line:       oklch(0.24 0.06 340 / 0.18);
@@ -55,13 +61,13 @@
   --color-secondary-foreground:   oklch(0.24 0.06 340);
   --color-muted:                  oklch(0.95 0.03 85);
   --color-muted-foreground:       oklch(0.5  0.04 340);
-  --color-accent:                 oklch(0.9  0.13 95);
+  --color-accent:                 oklch(0.88 0.05 32);
   --color-accent-foreground:      oklch(0.24 0.06 340);
   --color-destructive:            oklch(0.55 0.18 25);
   --color-destructive-foreground: oklch(0.99 0.012 85);
   --color-border:                 oklch(0.24 0.06 340);
   --color-input:                  oklch(0.24 0.06 340);
-  --color-ring:                   oklch(0.7  0.19 38);
+  --color-ring:                   oklch(0.67 0.13 12);
 }
 
 @layer base {
@@ -78,10 +84,10 @@
     font-size: 16px;
     line-height: 1.5;
     background-image:
-      radial-gradient(circle at 12% 8%,  oklch(0.91 0.06 350 / 0.35) 0, transparent 38%),
-      radial-gradient(circle at 92% 18%, oklch(0.9  0.13 95  / 0.28) 0, transparent 35%),
-      radial-gradient(circle at 88% 92%, oklch(0.88 0.08 155 / 0.25) 0, transparent 40%),
-      radial-gradient(circle at 8%  88%, oklch(0.85 0.07 305 / 0.25) 0, transparent 38%);
+      radial-gradient(circle at 12% 8%,  oklch(0.93 0.03 350 / 0.40) 0, transparent 38%),
+      radial-gradient(circle at 92% 18%, oklch(0.88 0.05 32  / 0.30) 0, transparent 35%),
+      radial-gradient(circle at 88% 92%, oklch(0.80 0.04 260 / 0.22) 0, transparent 40%),
+      radial-gradient(circle at 8%  88%, oklch(0.87 0.05 243 / 0.20) 0, transparent 38%);
     background-attachment: fixed;
   }
   ::selection { background: var(--color-orange); color: var(--color-cream); }
@@ -182,15 +188,15 @@
       repeating-linear-gradient(
         to bottom,
         transparent 0, transparent 31px,
-        oklch(0.85 0.07 305 / 0.4) 31px,
-        oklch(0.85 0.07 305 / 0.4) 32px
+        oklch(0.80 0.04 260 / 0.35) 31px,
+        oklch(0.80 0.04 260 / 0.35) 32px
       ),
       var(--color-paper);
   }
 
   /* ── Squiggle underline ──────────────────────────────────── */
   .squiggle {
-    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 8'><path d='M0 4 Q 12 0 25 4 T 50 4 T 75 4 T 100 4' fill='none' stroke='%23FA6B39' stroke-width='2.5' stroke-linecap='round'/></svg>");
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 8'><path d='M0 4 Q 12 0 25 4 T 50 4 T 75 4 T 100 4' fill='none' stroke='%23ec7a8a' stroke-width='2.5' stroke-linecap='round'/></svg>");
     background-repeat: repeat-x;
     background-position: 0 100%;
     background-size: 100px 8px;
