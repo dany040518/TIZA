@@ -51,11 +51,51 @@ export async function saveLessonPlan(plan: {
   subject?: string;
   grade?: string;
   topic?: string;
+  objectives?: string;
+  methodology?: string;
+  observations?: string;
   content: PlanIdea;
 }) {
   const { data, error } = await supabase
     .from('lesson_plans')
     .insert({ ...plan, status: 'draft_saved' as PlanStatus })
+    .select()
+    .single();
+  if (error) throw error;
+  return data as LessonPlan;
+}
+
+export async function updateLessonPlan(
+  planId: string,
+  fields: Partial<Pick<LessonPlan,
+    'title' | 'subject' | 'grade' | 'topic' |
+    'objectives' | 'methodology' | 'observations' | 'content'
+  >>,
+) {
+  const { data, error } = await supabase
+    .from('lesson_plans')
+    .update({ ...fields, updated_at: new Date().toISOString() })
+    .eq('id', planId)
+    .select()
+    .single();
+  if (error) throw error;
+  return data as LessonPlan;
+}
+
+export async function duplicateLessonPlan(plan: LessonPlan, classId?: string): Promise<LessonPlan> {
+  const { id: _id, created_at: _ca, updated_at: _ua, ...rest } = plan;
+  const { data, error } = await supabase
+    .from('lesson_plans')
+    .insert({
+      ...rest,
+      title: classId ? rest.title : `${rest.title} (copia)`,
+      parent_plan_id: plan.id ?? null,
+      class_id: classId ?? null,
+      status: 'draft_saved' as PlanStatus,
+      coordinator_comment: null,
+      reviewed_by: null,
+      reviewed_at: null,
+    })
     .select()
     .single();
   if (error) throw error;
@@ -68,6 +108,15 @@ export async function getLessonPlans(teacherId: string) {
     .select('*')
     .eq('teacher_id', teacherId)
     .order('created_at', { ascending: false });
+  if (error) throw error;
+  return data as LessonPlan[];
+}
+
+export async function getLinkedPlans(parentPlanId: string): Promise<LessonPlan[]> {
+  const { data, error } = await supabase
+    .from('lesson_plans')
+    .select('*')
+    .eq('parent_plan_id', parentPlanId);
   if (error) throw error;
   return data as LessonPlan[];
 }
@@ -122,12 +171,18 @@ export async function reviewLessonPlan(
 }
 
 // ── Classes ────────────────────────────────────────────────────
-export async function getClasses(teacherId: string) {
-  const { data, error } = await supabase
+export async function getClasses(teacherId: string, includeArchived = false) {
+  let query = supabase
     .from('classes')
     .select('*')
     .eq('teacher_id', teacherId)
     .order('created_at', { ascending: false });
+
+  if (!includeArchived) {
+    query = query.eq('is_archived', false);
+  }
+
+  const { data, error } = await query;
   if (error) throw error;
   return data as Class[];
 }
@@ -153,6 +208,14 @@ export async function updateClass(classId: string, fields: Partial<Omit<Class, '
   return data as Class;
 }
 
+export async function archiveClass(classId: string): Promise<Class> {
+  return updateClass(classId, { is_archived: true });
+}
+
+export async function unarchiveClass(classId: string): Promise<Class> {
+  return updateClass(classId, { is_archived: false });
+}
+
 export async function deleteClass(classId: string) {
   const { error } = await supabase.from('classes').delete().eq('id', classId);
   if (error) throw error;
@@ -160,7 +223,6 @@ export async function deleteClass(classId: string) {
 
 // ── Students ───────────────────────────────────────────────────
 
-// Returns students enrolled in a class via class_students (M:M)
 export async function getStudentsByClass(classId: string): Promise<Student[]> {
   const { data: enrollments, error: enrollErr } = await supabase
     .from('class_students')
@@ -179,7 +241,6 @@ export async function getStudentsByClass(classId: string): Promise<Student[]> {
   return data as Student[];
 }
 
-// Returns all students owned by a teacher, regardless of class
 export async function getTeacherStudents(teacherId: string): Promise<Student[]> {
   const { data, error } = await supabase
     .from('students')
@@ -190,7 +251,6 @@ export async function getTeacherStudents(teacherId: string): Promise<Student[]> 
   return data as Student[];
 }
 
-// Creates a student record (no class association — enroll separately)
 export async function createStudent(
   student: Omit<Student, 'id' | 'created_at' | 'updated_at'>,
 ): Promise<Student> {
@@ -203,7 +263,20 @@ export async function createStudent(
   return data as Student;
 }
 
-// Enroll an existing student into a class
+export async function updateStudent(
+  studentId: string,
+  fields: Partial<Pick<Student, 'full_name' | 'student_code' | 'email' | 'guardian_name' | 'guardian_phone' | 'notes'>>,
+): Promise<Student> {
+  const { data, error } = await supabase
+    .from('students')
+    .update({ ...fields, updated_at: new Date().toISOString() })
+    .eq('id', studentId)
+    .select()
+    .single();
+  if (error) throw error;
+  return data as Student;
+}
+
 export async function enrollStudentInClass(
   classId: string,
   studentId: string,
@@ -217,7 +290,6 @@ export async function enrollStudentInClass(
   return data as ClassStudent;
 }
 
-// Remove a student from a class without deleting the student record
 export async function unenrollStudentFromClass(
   classId: string,
   studentId: string,
@@ -230,18 +302,11 @@ export async function unenrollStudentFromClass(
   if (error) throw error;
 }
 
-// Permanently delete a student (cascades class_students + attendance_entries)
 export async function deleteStudent(studentId: string): Promise<void> {
   const { error } = await supabase.from('students').delete().eq('id', studentId);
   if (error) throw error;
 }
 
-// Bulk-import students from CSV rows into a class.
-// Dedup strategy (per teacher):
-//   - student_code match (priority) → reuse existing student
-//   - full_name match (normalized)  → reuse existing student
-//   - duplicates within the same CSV are skipped
-//   - already-enrolled students are skipped (no error)
 export async function importStudentsToClass(
   classId: string,
   teacherId: string,
@@ -250,21 +315,19 @@ export async function importStudentsToClass(
 ): Promise<ImportResult> {
   const result: ImportResult = { created: 0, enrolled: 0, skipped: 0, errors: [] };
 
-  // 1. Fetch all students already owned by this teacher
   const { data: existing, error: existErr } = await supabase
     .from('students')
     .select('id, full_name, student_code')
     .eq('teacher_id', teacherId);
   if (existErr) throw existErr;
 
-  const byCode = new Map<string, string>(); // normalized code → student id
-  const byName = new Map<string, string>(); // normalized name → student id
+  const byCode = new Map<string, string>();
+  const byName = new Map<string, string>();
   (existing ?? []).forEach((s) => {
     if (s.student_code?.trim()) byCode.set(s.student_code.trim().toLowerCase(), s.id as string);
     byName.set((s.full_name as string).trim().toLowerCase(), s.id as string);
   });
 
-  // 2. Fetch already-enrolled students in this class
   const { data: enrolled, error: enrolledErr } = await supabase
     .from('class_students')
     .select('student_id')
@@ -272,7 +335,6 @@ export async function importStudentsToClass(
   if (enrolledErr) throw enrolledErr;
   const enrolledSet = new Set((enrolled ?? []).map((e) => e.student_id as string));
 
-  // 3. Process each row, dedup within this CSV
   const seenInCsv = new Set<string>();
   const toCreate: Omit<Student, 'id' | 'created_at' | 'updated_at'>[] = [];
   const toEnrollIds: string[] = [];
@@ -289,15 +351,11 @@ export async function importStudentsToClass(
     }
     seenInCsv.add(csvKey);
 
-    // Find existing student for this teacher
     const existingId = (codeKey ? byCode.get(codeKey) : undefined) ?? byName.get(nameKey);
 
     if (existingId) {
-      if (enrolledSet.has(existingId)) {
-        result.skipped++;
-      } else {
-        toEnrollIds.push(existingId);
-      }
+      if (enrolledSet.has(existingId)) { result.skipped++; }
+      else { toEnrollIds.push(existingId); }
     } else {
       toCreate.push({
         institution_id:  institutionId,
@@ -312,7 +370,6 @@ export async function importStudentsToClass(
     }
   }
 
-  // 4. Bulk create new students
   if (toCreate.length > 0) {
     const { data: created, error: createErr } = await supabase
       .from('students')
@@ -323,7 +380,6 @@ export async function importStudentsToClass(
     (created ?? []).forEach((s) => toEnrollIds.push(s.id as string));
   }
 
-  // 5. Bulk enroll (ON CONFLICT handled by unique constraint — safe to re-run)
   if (toEnrollIds.length > 0) {
     const { error: bulkErr } = await supabase
       .from('class_students')
@@ -393,14 +449,24 @@ export async function createInstitution(fields: Omit<Institution, 'id' | 'create
   return data as Institution;
 }
 
-export async function createInviteCode(institutionId: string, code: string, maxUses = 999) {
+export async function createInviteCode(
+  institutionId: string,
+  code: string,
+  role: 'teacher' | 'coordinator' = 'teacher',
+  maxUses = 99999,
+) {
   const { data, error } = await supabase
     .from('invite_codes')
-    .insert({ institution_id: institutionId, code: code.toUpperCase(), max_uses: maxUses })
+    .insert({ institution_id: institutionId, code: code.toUpperCase(), role, max_uses: maxUses })
     .select()
     .single();
   if (error) throw error;
   return data as InviteCode;
+}
+
+export async function deleteInstitution(institutionId: string) {
+  const { error } = await supabase.rpc('delete_institution_cascade', { p_institution_id: institutionId });
+  if (error) throw error;
 }
 
 // ── Bug Reports ────────────────────────────────────────────────

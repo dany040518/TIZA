@@ -17,6 +17,7 @@ const teacherTabs = [
   { to: '/planning',  label: 'Planeación', emoji: '✎', bg: 'var(--color-butter)' },
   { to: '/my-plans',  label: 'Mis Planes', emoji: '✦', bg: 'var(--color-mint)'   },
   { to: '/classes',   label: 'Clases',     emoji: '✤', bg: 'var(--color-lilac)'  },
+  { to: '/weekly',    label: 'Semana',     emoji: '◷', bg: 'var(--color-sky)'    },
 ] as const;
 
 const coordinatorTabs = [

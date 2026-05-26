@@ -16,36 +16,39 @@ const TASKS = [
     link: '/planning' as const,
   },
   {
-    time: 'pronto',
-    tag: 'próximamente',
-    title: 'Asistencia y seguimiento de grupos',
-    note: 'Registra asistencia y recibe alertas cuando un estudiante muestra ausentismo frecuente.',
+    time: 'hoy',
+    tag: 'asistencia',
+    title: 'Registra la asistencia de tus clases',
+    note: 'Ve a cada clase y marca presente o ausente con un solo toque.',
     color: 'var(--color-butter)',
-    action: 'En desarrollo',
-    link: null,
+    action: 'Ir a Clases',
+    link: '/classes' as const,
   },
   {
-    time: 'pronto',
-    tag: 'próximamente',
-    title: 'Informes automáticos de progreso',
-    note: 'Genera boletines y comunicados en minutos a partir de tus registros existentes.',
+    time: 'semana',
+    tag: 'vista semanal',
+    title: 'Consulta tu agenda de la semana',
+    note: 'Visualiza tus clases programadas en el calendario semanal.',
     color: 'var(--color-mint)',
-    action: 'En desarrollo',
-    link: null,
+    action: 'Ver semana',
+    link: '/weekly' as const,
   },
 ];
 
-const days = [
-  { name: 'LUN', date: 4 },
-  { name: 'MAR', date: 5 },
-  { name: 'MIÉ', date: 6 },
-  { name: 'JUE', date: 7 },
-  { name: 'VIE', date: 8 },
-  { name: 'SÁB', date: 9 },
-  { name: 'DOM', date: 10 },
-] as const;
+function getWeekDays() {
+  const now = new Date();
+  const day = now.getDay(); // 0=Sun
+  const monday = new Date(now);
+  monday.setDate(now.getDate() - (day === 0 ? 6 : day - 1));
+  monday.setHours(0, 0, 0, 0);
+  const names = ['LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB', 'DOM'];
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    return { name: names[i], date: d.getDate(), full: d };
+  });
+}
 
-const today = 7;
 
 function VoiceCard({ tag, bg, body, children }: { tag: string; bg: string; body: string; children?: React.ReactNode }) {
   return (
@@ -65,6 +68,8 @@ function VoiceCard({ tag, bg, body, children }: { tag: string; bg: string; body:
 export default function Dashboard() {
   const { displayName } = useAuth();
   const firstName = displayName?.split(' ')[0] ?? 'Docente';
+  const weekDays = getWeekDays();
+  const todayDate = new Date().getDate();
 
   return (
     <DashboardLayout>
@@ -139,15 +144,9 @@ export default function Dashboard() {
 
                 {/* CTA */}
                 <div>
-                  {t.link ? (
-                    <Link to={t.link} className="btn-chunky btn-chunky-plum" style={{ padding: '10px 16px', fontSize: 13 }}>
-                      {t.action} →
-                    </Link>
-                  ) : (
-                    <span className="chip" style={{ fontSize: 11, background: 'var(--color-paper)', opacity: 0.8 }}>
-                      {t.action}
-                    </span>
-                  )}
+                  <Link to={t.link} className="btn-chunky btn-chunky-plum" style={{ padding: '10px 16px', fontSize: 13 }}>
+                    {t.action} →
+                  </Link>
                 </div>
               </motion.div>
             ))}
@@ -177,11 +176,11 @@ export default function Dashboard() {
           </motion.div>
 
           {/* Week calendar */}
-          <div className="sticker p-5" style={{ background: 'var(--color-paper)' }}>
-            <div className="label mb-4" style={{ color: 'var(--color-mute)' }}>esta semana</div>
+          <Link to="/weekly" className="sticker p-5 block no-underline" style={{ background: 'var(--color-paper)' }}>
+            <div className="label mb-4" style={{ color: 'var(--color-mute)' }}>esta semana →</div>
             <div className="grid grid-cols-7 gap-1.5">
-              {days.map((d) => {
-                const active = d.date === today;
+              {weekDays.map((d) => {
+                const active = d.date === todayDate;
                 return (
                   <div
                     key={d.date}
@@ -211,7 +210,7 @@ export default function Dashboard() {
                 );
               })}
             </div>
-          </div>
+          </Link>
 
           {/* Voice card */}
           <VoiceCard

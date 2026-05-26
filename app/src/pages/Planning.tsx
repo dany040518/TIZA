@@ -1,4 +1,4 @@
-import { Sparkles, FileDown, X, BookmarkCheck, Check } from "lucide-react";
+import { Sparkles, X, BookmarkCheck, Check } from "lucide-react";
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useAuth } from "@/hooks/useAuth";
@@ -6,7 +6,6 @@ import { useProfile } from "@/hooks/useProfile";
 import { saveLessonPlan } from "@/lib/db";
 import { generateLessonPlan } from "@/services/aiService";
 import DashboardLayout from "../components/layouts/DashboardLayout";
-import html2pdf from "html2pdf.js";
 import { Star, Squiggle } from "@/components/tiza/Mark";
 import type { PlanIdea } from "@/types";
 
@@ -32,6 +31,9 @@ export default function Planning() {
   const [grade, setGrade]           = useState("");
   const [topic, setTopic]           = useState("");
   const [context, setContext]       = useState("");
+  const [objectives, setObjectives] = useState("");
+  const [methodology, setMethodology] = useState("");
+  const [observations, setObservations] = useState("");
   const [loading, setLoading]       = useState(false);
   const [ideas, setIdeas]           = useState<PlanIdea[]>([]);
   const [selected, setSelected]     = useState<PlanIdea | null>(null);
@@ -85,6 +87,9 @@ export default function Planning() {
         subject,
         grade,
         topic,
+        objectives:     objectives || undefined,
+        methodology:    methodology || undefined,
+        observations:   observations || undefined,
         content:        activePlan,
       });
       setSaved(true);
@@ -96,27 +101,7 @@ export default function Planning() {
     }
   };
 
-  const handleDownloadPDF = () => {
-    const el = document.getElementById("plan-panel");
-    if (!el) return;
-    const clone = el.cloneNode(true) as HTMLElement;
-    clone.style.background = "#ffffff";
-    clone.style.color = "#000000";
-    clone.querySelectorAll("*").forEach((n: Element) => {
-      (n as HTMLElement).style.backgroundColor = "#ffffff";
-      (n as HTMLElement).style.color = "#000000";
-      (n as HTMLElement).style.borderColor = "#e5e7eb";
-    });
-    html2pdf()
-      .from(clone)
-      .set({
-        margin: 0.5,
-        filename: "planeacion-clase.pdf",
-        html2canvas: { scale: 2, useCORS: true },
-        jsPDF: { unit: "in", format: "letter", orientation: "portrait" },
-      })
-      .save();
-  };
+
 
   // ── Render ───────────────────────────────────────────────────
   return (
@@ -450,13 +435,6 @@ export default function Planning() {
                     )}
                   </button>
                   <button
-                    onClick={handleDownloadPDF}
-                    className="btn-chunky"
-                    style={{ padding: '8px 14px', fontSize: 12 }}
-                  >
-                    <FileDown className="w-3.5 h-3.5" /> PDF
-                  </button>
-                  <button
                     onClick={() => setActivePlan(null)}
                     className="btn-chunky btn-chunky-ghost"
                     style={{ padding: '8px 12px', fontSize: 12 }}
@@ -530,6 +508,29 @@ export default function Planning() {
                   <p className="serif-em text-[17px]" style={{ lineHeight: 1.65 }}>
                     "{activePlan.evaluation}"
                   </p>
+                </div>
+
+                {/* Extra editable fields */}
+                <div className="mt-10 space-y-6" style={{ borderTop: '1.5px dashed oklch(0.24 0.06 340 / 0.3)', paddingTop: 32 }}>
+                  <div className="label" style={{ color: 'var(--color-mute)' }}>— Campos adicionales (opcionales)</div>
+
+                  {[
+                    { label: 'Objetivos', value: objectives, setter: setObjectives, placeholder: 'Describe los objetivos de aprendizaje…' },
+                    { label: 'Metodología', value: methodology, setter: setMethodology, placeholder: 'Enfoque pedagógico, estrategias didácticas…' },
+                    { label: 'Observaciones', value: observations, setter: setObservations, placeholder: 'Notas, ajustes, contexto especial…' },
+                  ].map(({ label, value, setter, placeholder }) => (
+                    <div key={label}>
+                      <div className="label mb-2" style={{ color: 'var(--color-mute)' }}>{label}</div>
+                      <textarea
+                        rows={3}
+                        value={value}
+                        onChange={(e) => setter(e.target.value)}
+                        placeholder={placeholder}
+                        className="w-full bg-transparent border rounded-xl p-3 text-[14px] font-medium leading-relaxed resize-none focus:outline-none"
+                        style={{ borderColor: 'oklch(0.24 0.06 340 / 0.2)', color: 'var(--color-plum)' }}
+                      />
+                    </div>
+                  ))}
                 </div>
               </div>
 

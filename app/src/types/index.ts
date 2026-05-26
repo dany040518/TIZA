@@ -1,7 +1,10 @@
 export type AppRole = 'teacher' | 'coordinator' | 'admin';
 export type PlanStatus = 'draft_saved' | 'pending_review' | 'approved' | 'rejected';
-export type AttendanceStatus = 'present' | 'absent' | 'late' | 'excused';
+export type AttendanceStatus = 'present' | 'absent';
 export type InstitutionType = 'preescolar' | 'primaria' | 'secundaria' | 'universidad' | 'otro';
+
+// Days of week: 0=Sunday, 1=Monday … 6=Saturday
+export type DayOfWeek = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 
 export interface AppUser {
   id: string;
@@ -39,6 +42,11 @@ export interface Class {
   subject: string;
   grade_level: string;
   academic_period?: string;
+  description?: string;
+  is_archived?: boolean;
+  days_of_week?: DayOfWeek[];
+  start_time?: string | null; // "HH:MM"
+  end_time?: string | null;   // "HH:MM"
   schedule?: Record<string, unknown>;
   created_at?: string;
 }
@@ -114,10 +122,19 @@ export interface LessonPlan {
   id?: string;
   teacher_id: string;
   institution_id?: string | null;
+  // Plan-class relationship
+  parent_plan_id?: string | null;
+  class_id?: string | null;
+  // Core fields
   title: string;
   subject?: string;
   grade?: string;
   topic?: string;
+  // Extended editable fields
+  objectives?: string | null;
+  methodology?: string | null;
+  observations?: string | null;
+  // AI-generated content blob
   content: PlanIdea;
   status: PlanStatus;
   coordinator_comment?: string | null;
@@ -132,6 +149,7 @@ export interface InviteCode {
   id: string;
   institution_id: string;
   code: string;
+  role: 'teacher' | 'coordinator';
   created_by?: string | null;
   max_uses: number;
   use_count: number;
@@ -144,6 +162,7 @@ export interface ValidateInviteCodeResult {
   institution_id: string | null;
   institution_name: string | null;
   institution_type: string | null;
+  role: string | null;
   is_valid: boolean;
 }
 
@@ -158,4 +177,16 @@ export interface BugReport {
   page_url?: string;
   user_agent?: string;
   created_at?: string;
+}
+
+// ── Weekly schedule helpers ────────────────────────────────────────────────
+
+export interface WeeklyEvent {
+  classId: string;
+  className: string;
+  subject: string;
+  day: DayOfWeek;
+  startTime: string;  // "HH:MM"
+  endTime: string;    // "HH:MM"
+  color: string;
 }
