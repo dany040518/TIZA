@@ -27,11 +27,8 @@ export default function ProtectedRoute({ children, role }: ProtectedRouteProps) 
   if (role && profile) {
     const allowed = Array.isArray(role) ? role : [role];
     if (!allowed.includes(profile.role)) {
-      return <Navigate to={
-        profile.role === 'admin'       ? '/admin' :
-        profile.role === 'coordinator' ? '/coordinator' :
-        '/dashboard'
-      } replace />;
+      // TODO B2B: add coordinator redirect when reinstating B2B flow
+      return <Navigate to={profile.role === 'admin' ? '/admin' : '/dashboard'} replace />;
     }
   }
 

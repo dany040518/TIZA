@@ -11,7 +11,7 @@ import Classes from './pages/Classes';
 import Students from './pages/Students';
 import Attendance from './pages/Attendance';
 import WeeklyView from './pages/WeeklyView';
-import CoordinatorDashboard from './pages/CoordinatorDashboard';
+// TODO B2B: import CoordinatorDashboard from './_future-b2b/CoordinatorDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import Account from './pages/Account';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -53,10 +53,7 @@ export default function App() {
             <ProtectedRoute role={['teacher']}><WeeklyView /></ProtectedRoute>
           } />
 
-          {/* Coordinator routes */}
-          <Route path="/coordinator" element={
-            <ProtectedRoute role={['coordinator']}><CoordinatorDashboard /></ProtectedRoute>
-          } />
+          {/* TODO B2B: restaurar ruta /coordinator con CoordinatorDashboard */}
 
           {/* Admin routes */}
           <Route path="/admin" element={

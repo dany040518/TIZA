@@ -17,7 +17,7 @@ export default function RootRedirect() {
 
   if (!user) return <Navigate to="/login" replace />;
 
-  if (profile?.role === 'admin')       return <Navigate to="/admin"       replace />;
-  if (profile?.role === 'coordinator') return <Navigate to="/coordinator" replace />;
+  if (profile?.role === 'admin') return <Navigate to="/admin" replace />;
+  // TODO B2B: if (profile?.role === 'coordinator') return <Navigate to="/coordinator" replace />;
   return <Navigate to="/dashboard" replace />;
 }

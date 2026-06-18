@@ -469,6 +469,11 @@ export async function deleteInstitution(institutionId: string) {
   if (error) throw error;
 }
 
+// ── Feature Interest ───────────────────────────────────────────
+export async function saveFeatureInterest(userId: string, featureName: string): Promise<void> {
+  await supabase.from('feature_interest').insert({ user_id: userId, feature_name: featureName });
+}
+
 // ── Bug Reports ────────────────────────────────────────────────
 export async function submitBugReport(report: Omit<BugReport, 'id' | 'created_at'>) {
   const { error } = await supabase.from('bug_reports').insert(report);

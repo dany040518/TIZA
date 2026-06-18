@@ -4,35 +4,32 @@ import { useProfile } from '@/hooks/useProfile';
 import { useToast } from '@/components/Toast';
 import {
   getLessonPlans, updateLessonPlan, duplicateLessonPlan,
-  deleteLessonPlan, submitLessonPlanForReview, getLinkedPlans,
+  deleteLessonPlan, getLinkedPlans,
   getClasses,
+  // TODO B2B: restaurar submitLessonPlanForReview cuando haya flujo de revisión institucional
 } from '@/lib/db';
 import type { LessonPlan, PlanStatus, Class, PlanIdea } from '@/types';
 import DashboardLayout from '@/components/layouts/DashboardLayout';
 import {
-  Loader2, Trash2, FileDown, Send, Pencil, Copy, Search,
+  Loader2, Trash2, FileDown, Pencil, Copy, Search,
   X, ChevronDown, ChevronUp, Link2, Check, BookOpen,
+  // TODO B2B: restaurar Send cuando haya flujo de revisión institucional
 } from 'lucide-react';
 import { Star } from '@/components/tiza/Mark';
 import html2pdf from 'html2pdf.js';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const STATUS_LABEL: Record<PlanStatus, string> = {
-  draft_saved:    'Borrador',
-  pending_review: 'En revisión',
-  approved:       'Aprobado',
-  rejected:       'Rechazado',
+// TODO B2B: restaurar pending_review/approved/rejected cuando haya flujo de revisión institucional
+const STATUS_LABEL: Partial<Record<PlanStatus, string>> = {
+  draft_saved: 'Borrador',
 };
 
-const STATUS_BG: Record<PlanStatus, string> = {
-  draft_saved:    'var(--color-paper)',
-  pending_review: 'var(--color-butter)',
-  approved:       'var(--color-mint)',
-  rejected:       'var(--color-blush)',
+const STATUS_BG: Partial<Record<PlanStatus, string>> = {
+  draft_saved: 'var(--color-paper)',
 };
 
-const ALL_STATUSES: PlanStatus[] = ['draft_saved', 'pending_review', 'approved', 'rejected'];
+const ALL_STATUSES: PlanStatus[] = ['draft_saved'];
 
 // ── PDF export ────────────────────────────────────────────────────────────────
 // Disponible para todos los estados de la planeación (borrador, revisión, aprobada, rechazada).
@@ -421,7 +418,6 @@ function PlanCard({
   onEdit,
   onDuplicate,
   onDelete,
-  onSubmit,
   onLink,
   busy,
 }: {
@@ -430,7 +426,7 @@ function PlanCard({
   onEdit: () => void;
   onDuplicate: () => void;
   onDelete: () => void;
-  onSubmit: () => void;
+  // TODO B2B: restaurar onSubmit: () => void cuando haya flujo de revisión institucional
   onLink: () => void;
   busy: boolean;
 }) {
@@ -462,27 +458,11 @@ function PlanCard({
             <div className="text-[12px]" style={{ color: 'var(--color-mute)' }}>
               {[plan.subject, plan.grade, plan.topic].filter(Boolean).join(' · ')}
             </div>
-            {plan.coordinator_comment && (
-              <div className="sticker mt-2 p-2.5 text-[12px]"
-                style={{
-                  background: plan.status === 'rejected' ? 'oklch(0.95 0.06 25)' : 'var(--color-mint)',
-                  borderColor: plan.status === 'rejected' ? 'oklch(0.55 0.18 25)' : 'var(--color-plum)',
-                }}>
-                <span className="font-semibold">Coordinador: </span>{plan.coordinator_comment}
-              </div>
-            )}
           </div>
 
-          {/* Actions */}
+          {/* Actions — TODO B2B: restaurar botón "Enviar a revisión" */}
           <div className="flex items-center gap-1.5 flex-wrap shrink-0">
-            {(plan.status === 'draft_saved' || plan.status === 'rejected') && (
-              <button className="btn-chunky" style={{ padding: '6px 11px', fontSize: 12 }}
-                disabled={busy} onClick={onSubmit} title={plan.status === 'rejected' ? 'Re-enviar a revisión' : 'Enviar a revisión'}>
-                {busy ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
-                <span className="hidden sm:inline">{plan.status === 'rejected' ? 'Re-enviar' : 'Enviar'}</span>
-              </button>
-            )}
-            {/* PDF disponible para todos los estados — sin restricción de aprobación */}
+            {/* PDF disponible para todos los estados */}
             <button className="btn-chunky" style={{ padding: '6px 11px', fontSize: 12 }}
               onClick={() => downloadPlanPDF(plan, linkedClass ?? undefined)} title="Descargar PDF">
               <FileDown size={12} />
@@ -612,15 +592,7 @@ export default function MyPlans() {
 
   // ── Actions ────────────────────────────────────────────────
 
-  const handleSubmit = async (planId: string) => {
-    setBusy(planId);
-    try {
-      const updated = await submitLessonPlanForReview(planId);
-      setPlans((prev) => prev.map((p) => (p.id === planId ? updated : p)));
-      success('Planeación enviada a revisión');
-    } catch { toastError('Error al enviar la planeación.'); }
-    finally { setBusy(null); }
-  };
+  // TODO B2B: restaurar handleSubmit cuando haya flujo de revisión institucional
 
   const handleDelete = async (planId: string) => {
     if (!confirm('¿Eliminar esta planeación?')) return;
@@ -687,10 +659,9 @@ export default function MyPlans() {
 
   // ── Stats ──────────────────────────────────────────────────
   const stats = useMemo(() => ({
-    total:    plans.filter((p) => !p.parent_plan_id).length,
-    draft:    plans.filter((p) => p.status === 'draft_saved').length,
-    review:   plans.filter((p) => p.status === 'pending_review').length,
-    approved: plans.filter((p) => p.status === 'approved').length,
+    total: plans.filter((p) => !p.parent_plan_id).length,
+    draft: plans.filter((p) => p.status === 'draft_saved').length,
+    // TODO B2B: restaurar review y approved cuando haya flujo de revisión institucional
   }), [plans]);
 
   return (
@@ -709,14 +680,12 @@ export default function MyPlans() {
           </h1>
         </div>
 
-        {/* Stats */}
+        {/* Stats — TODO B2B: restaurar En revisión y Aprobadas cuando haya flujo institucional */}
         {!loading && plans.length > 0 && (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+          <div className="grid grid-cols-2 gap-3 mb-6">
             {[
-              { label: 'Total',       value: stats.total,    bg: 'var(--color-paper)' },
-              { label: 'Borradores',  value: stats.draft,    bg: 'var(--color-cream-2)' },
-              { label: 'En revisión', value: stats.review,   bg: 'var(--color-butter)' },
-              { label: 'Aprobadas',   value: stats.approved, bg: 'var(--color-mint)' },
+              { label: 'Total',      value: stats.total, bg: 'var(--color-paper)'   },
+              { label: 'Borradores', value: stats.draft, bg: 'var(--color-cream-2)' },
             ].map((s) => (
               <div key={s.label} className="sticker p-4 text-center" style={{ background: s.bg }}>
                 <div className="font-bold text-[26px]">{s.value}</div>
@@ -806,7 +775,6 @@ export default function MyPlans() {
               onEdit={() => setEditTarget(plan)}
               onDuplicate={() => handleDuplicate(plan)}
               onDelete={() => handleDelete(plan.id!)}
-              onSubmit={() => handleSubmit(plan.id!)}
               onLink={() => openLink(plan)}
               busy={busy === plan.id}
             />

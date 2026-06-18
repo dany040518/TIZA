@@ -6,7 +6,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { Star, Squiggle } from '@/components/tiza/Mark';
 import { getLessonPlans, getClasses } from '@/lib/db';
 import type { LessonPlan, Class, DayOfWeek } from '@/types';
-import { Loader2, BookOpen, Clock, AlertCircle, CheckCircle2, FileText } from 'lucide-react';
+import { Loader2, BookOpen, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { saveFeatureInterest } from '@/lib/db';
 
 // ── Active tasks — only Planning focus (Attendance paused) ──────────────────
 
@@ -74,14 +75,11 @@ function buildReminders(plans: LessonPlan[], classes: Class[]): Reminder[] {
   const reminders: Reminder[] = [];
   const todayDow = new Date().getDay() as DayOfWeek;
 
-  const draftPlans   = plans.filter((p) => p.status === 'draft_saved' && !p.parent_plan_id);
-  const pendingPlans = plans.filter((p) => p.status === 'pending_review');
-  const classesWithPlan = new Set(plans.map((p) => p.class_id).filter(Boolean));
+  const classesWithPlan    = new Set(plans.map((p) => p.class_id).filter(Boolean));
   const classesWithoutPlan = classes.filter((c) => !classesWithPlan.has(c.id));
-  const todayClasses = classes.filter((c) => (c.days_of_week ?? []).includes(todayDow));
-  const todayWithoutPlan = todayClasses.filter((c) => !classesWithPlan.has(c.id));
+  const todayClasses       = classes.filter((c) => (c.days_of_week ?? []).includes(todayDow));
+  const todayWithoutPlan   = todayClasses.filter((c) => !classesWithPlan.has(c.id));
 
-  // Hoy hay clases sin planeación
   if (todayWithoutPlan.length > 0) {
     const names = todayWithoutPlan.slice(0, 2).map((c) => c.name).join(', ');
     reminders.push({
@@ -93,27 +91,6 @@ function buildReminders(plans: LessonPlan[], classes: Class[]): Reminder[] {
     });
   }
 
-  // Planeaciones en borrador
-  if (draftPlans.length > 0) {
-    reminders.push({
-      icon: <FileText size={14} />,
-      text: `Tienes ${draftPlans.length} planeación${draftPlans.length > 1 ? 'es' : ''} en borrador sin enviar a revisión.`,
-      bg: 'var(--color-butter)',
-      link: '/my-plans',
-      linkLabel: 'Revisar borradores',
-    });
-  }
-
-  // Planeaciones en revisión
-  if (pendingPlans.length > 0) {
-    reminders.push({
-      icon: <Clock size={14} />,
-      text: `${pendingPlans.length} planeación${pendingPlans.length > 1 ? 'es están' : ' está'} en revisión por el coordinador.`,
-      bg: 'var(--color-sky)',
-    });
-  }
-
-  // Clases sin planeación (general)
   if (classesWithoutPlan.length > 0 && todayWithoutPlan.length === 0) {
     const names = classesWithoutPlan.slice(0, 2).map((c) => c.name).join(', ');
     reminders.push({
@@ -125,7 +102,6 @@ function buildReminders(plans: LessonPlan[], classes: Class[]): Reminder[] {
     });
   }
 
-  // Sin planeaciones aún
   if (plans.length === 0) {
     reminders.push({
       icon: <CheckCircle2 size={14} />,
@@ -136,7 +112,6 @@ function buildReminders(plans: LessonPlan[], classes: Class[]): Reminder[] {
     });
   }
 
-  // Todo al día
   if (reminders.length === 0) {
     reminders.push({
       icon: <CheckCircle2 size={14} />,
@@ -150,6 +125,11 @@ function buildReminders(plans: LessonPlan[], classes: Class[]): Reminder[] {
 
 // ── Main component ────────────────────────────────────────────────────────────
 
+const ROADMAP_FEATURES = [
+  { key: 'seguimiento', label: 'Seguimiento de asistencia', bg: 'var(--color-butter)' },
+  { key: 'informes',    label: 'Informes y reportes',       bg: 'var(--color-sky)'    },
+] as const;
+
 export default function Dashboard() {
   const { user, displayName } = useAuth();
   const firstName = displayName?.split(' ')[0] ?? 'Docente';
@@ -159,6 +139,7 @@ export default function Dashboard() {
   const [plans,    setPlans]    = useState<LessonPlan[]>([]);
   const [classes,  setClasses]  = useState<Class[]>([]);
   const [loading,  setLoading]  = useState(true);
+  const [notified, setNotified] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (!user) return;
@@ -173,6 +154,12 @@ export default function Dashboard() {
   }, [user]);
 
   const reminders = loading ? [] : buildReminders(plans, classes);
+
+  const handleNotify = async (featureKey: string) => {
+    if (!user || notified.has(featureKey)) return;
+    await saveFeatureInterest(user.id, featureKey);
+    setNotified((prev) => new Set(prev).add(featureKey));
+  };
 
   return (
     <DashboardLayout>
@@ -205,8 +192,40 @@ export default function Dashboard() {
 
             <div className="mt-6 flex flex-wrap gap-2">
               <span className="chip" style={{ background: 'var(--color-blush)' }}>planeación IA</span>
-              <span className="chip" style={{ background: 'var(--color-butter)' }}>seguimiento pronto</span>
-              <span className="chip" style={{ background: 'var(--color-mint)' }}>informes pronto</span>
+            </div>
+
+            {/* Roadmap — próximas funciones */}
+            <div className="mt-5 pt-5" style={{ borderTop: '1.5px dashed oklch(0.24 0.06 340 / 0.18)' }}>
+              <div className="label mb-3" style={{ color: 'var(--color-mute)' }}>en camino →</div>
+              <div className="flex flex-col sm:flex-row gap-2">
+                {ROADMAP_FEATURES.map((f) => {
+                  const done = notified.has(f.key);
+                  return (
+                    <button
+                      key={f.key}
+                      type="button"
+                      onClick={() => handleNotify(f.key)}
+                      disabled={done}
+                      className="sticker flex items-center gap-2 px-4 py-2.5 text-left transition-all"
+                      style={{
+                        background: done ? 'var(--color-mint)' : f.bg,
+                        boxShadow: '2px 2px 0 var(--color-plum)',
+                        cursor: done ? 'default' : 'pointer',
+                        border: '2px solid var(--color-plum)',
+                        fontSize: 12,
+                        fontWeight: 700,
+                        color: 'var(--color-plum)',
+                      }}
+                    >
+                      <span>{done ? '✓' : '🔔'}</span>
+                      <span>{f.label}</span>
+                      <span style={{ color: 'var(--color-mute)', fontWeight: 400, marginLeft: 'auto' }}>
+                        {done ? '¡Anotado!' : 'Avísame'}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </motion.div>
 
