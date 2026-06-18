@@ -4,12 +4,8 @@ import type { PlanIdea } from "@/types";
 export type { PlanIdea };
 
 // ── generateLessonPlan ─────────────────────────────────────────
-// Drop-in replacement for geminiService.generateLessonPlan.
-// Same signature, same return shape — Planning.tsx needs zero changes
-// beyond the import line.
-//
-// API key never touches the browser: the request goes to the
-// Supabase Edge Function which holds GEMINI_API_KEY as a secret.
+// API key (OPENROUTER_API_KEY) lives only as a Supabase Edge Function secret.
+// The browser never sees it — all AI calls go through /functions/v1/generate-plan.
 
 export const generateLessonPlan = async (
   subject: string,
