@@ -1,5 +1,5 @@
 import { supabase } from "@/lib/supabaseClient";
-import type { PlanIdea } from "@/types";
+import type { PlanIdea, SectionKey } from "@/types";
 
 export type { PlanIdea };
 
@@ -12,6 +12,7 @@ export const generateLessonPlan = async (
   grade: string,
   topic: string,
   context?: string,
+  selectedSections?: SectionKey[],
 ): Promise<{ ideas: PlanIdea[] } | null> => {
   // Require an active session — the JWT authenticates the Edge Function
   const {
@@ -30,7 +31,7 @@ export const generateLessonPlan = async (
         "Content-Type": "application/json",
         Authorization: `Bearer ${session.access_token}`,
       },
-      body: JSON.stringify({ subject, grade, topic, context }),
+      body: JSON.stringify({ subject, grade, topic, context, selected_sections: selectedSections ?? null }),
     },
   );
 

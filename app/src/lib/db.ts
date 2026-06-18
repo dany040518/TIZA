@@ -55,6 +55,7 @@ export async function saveLessonPlan(plan: {
   methodology?: string;
   observations?: string;
   content: PlanIdea;
+  selected_sections?: string[] | null;
 }) {
   const { data, error } = await supabase
     .from('lesson_plans')

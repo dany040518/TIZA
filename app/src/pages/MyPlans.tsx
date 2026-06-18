@@ -81,11 +81,12 @@ function downloadPlanPDF(plan: LessonPlan, linkedClass?: Class) {
       </div>` : ''}
     </div>` : ''}
 
+    ${c.objective ? `
     <!-- Objetivo principal -->
     <div style="margin-bottom:20px;">
       <div style="font-family:Arial,sans-serif;font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#888;margin-bottom:8px;">Objetivo Principal</div>
       <p style="font-size:15px;line-height:1.6;margin:0;color:#1a1a2e;">${c.objective}</p>
-    </div>
+    </div>` : ''}
 
     <!-- Descripción -->
     <div style="margin-bottom:20px;">
@@ -119,10 +120,11 @@ function downloadPlanPDF(plan: LessonPlan, linkedClass?: Class) {
       <p style="font-size:14px;line-height:1.6;margin:0;color:#333;">${plan.methodology}</p>
     </div>` : ''}
 
+    ${(c.sequence ?? []).length > 0 ? `
     <!-- Secuencia de clase -->
     <div style="margin-bottom:24px;">
       <div style="font-family:Arial,sans-serif;font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#888;margin-bottom:12px;">Secuencia de Clase</div>
-      ${c.sequence.map((s, i) => `
+      ${(c.sequence ?? []).map((s, i) => `
       <div style="display:flex;gap:14px;margin-bottom:14px;">
         <div style="font-family:Arial,sans-serif;font-weight:700;font-size:11px;color:#ec7a8a;min-width:24px;padding-top:2px;">0${i+1}</div>
         <div style="flex:1;border-left:2px solid #ec7a8a;padding-left:14px;">
@@ -133,7 +135,7 @@ function downloadPlanPDF(plan: LessonPlan, linkedClass?: Class) {
           <p style="font-size:13px;line-height:1.55;margin:0;color:#444;">${s.description}</p>
         </div>
       </div>`).join('')}
-    </div>
+    </div>` : ''}
 
     ${c.materials?.length > 0 ? `
     <!-- Materiales -->
@@ -144,11 +146,12 @@ function downloadPlanPDF(plan: LessonPlan, linkedClass?: Class) {
       </ul>
     </div>` : ''}
 
+    ${c.evaluation ? `
     <!-- Evaluación -->
     <div style="background:#f9e1ee;border-radius:10px;padding:16px 20px;margin-bottom:20px;">
       <div style="font-family:Arial,sans-serif;font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#ec7a8a;margin-bottom:8px;">Evaluación</div>
       <p style="font-size:14px;font-style:italic;line-height:1.65;margin:0;color:#333;">"${c.evaluation}"</p>
-    </div>
+    </div>` : ''}
 
     ${plan.observations ? `
     <!-- Observaciones -->
