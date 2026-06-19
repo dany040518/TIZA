@@ -1,5 +1,5 @@
-import { Sparkles, X, BookmarkCheck, Check, AlertTriangle } from "lucide-react";
-import { useState, useEffect, useRef } from "react";
+import { Sparkles, X, BookmarkCheck, Check } from "lucide-react";
+import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
@@ -11,68 +11,6 @@ import { useToast } from "@/components/Toast";
 import type { PlanIdea } from "@/types";
 import type { SectionKey } from "@/types";
 import { SECTION_LABELS, SECTION_PRESETS, MANDATORY_SECTIONS } from "@/types";
-
-// ── Subject inference by keyword matching ────────────────────
-// Tradeoff: keywords >> llamada al modelo → sin latencia, sin tokens extra,
-// extensible fácilmente. Suficiente para los casos más comunes en español.
-const SUBJECT_KEYWORDS: Record<string, string[]> = {
-  "Matemáticas": [
-    "ecuación","función","álgebra","geometría","fracción","número","cálculo",
-    "estadística","probabilidad","trigonometría","derivada","integral","suma",
-    "resta","multiplicación","división","proporción","porcentaje","vector",
-    "polinomio","logaritmo","teorema","factorial","conjunto","matriz",
-  ],
-  "Ciencias Naturales": [
-    "célula","organismo","ecosistema","fotosíntesis","evolución","adn","gen",
-    "bacteria","virus","animal","planta","biología","química","átomo","molécula",
-    "reacción","elemento","física","fuerza","energía","movimiento","electricidad",
-    "magnetismo","óptica","onda","calor","temperatura","eucariota","procariota",
-    "mitosis","meiosis","genética","gravedad","fricción","presión","densidad",
-  ],
-  "Lengua/Español": [
-    "lectura","escritura","gramática","ortografía","narración","texto","cuento",
-    "poema","novela","verbo","sustantivo","adjetivo","puntuación","párrafo",
-    "ensayo","sinónimo","antónimo","análisis literario","redacción","literatura",
-    "oración","sílaba","acento","vocales","consonantes","comprensión lectora",
-  ],
-  "Ciencias Sociales": [
-    "historia","geografía","cultura","sociedad","democracia","gobierno","economía",
-    "revolución","guerra","paz","mapa","región","país","continente","civilización",
-    "ciudadanía","derecho","político","social","colonial","independencia","república",
-  ],
-  "Inglés": [
-    "english","grammar","vocabulary","pronunciation","reading","writing",
-    "listening","speaking","verb tense","past tense","present","future",
-    "conditional","phrasal verb","idiom","inglés",
-  ],
-  "Tecnología": [
-    "programación","código","algoritmo","computadora","internet","software",
-    "hardware","robot","automatización","inteligencia artificial","app","web",
-    "digital","base de datos","red","sistema operativo","variable","función",
-    "ciclo","condicional","python","javascript","html","css",
-  ],
-  "Arte": [
-    "pintura","dibujo","escultura","música","danza","teatro","arte","color",
-    "forma","expresión","creación","diseño","composición","ritmo","melodía",
-    "armonía","perspectiva","acuarela","collage","cerámica","fotografía",
-  ],
-  "Educación Física": [
-    "deporte","ejercicio","salud","cuerpo","movimiento","fútbol","baloncesto",
-    "atletismo","coordinación","resistencia","flexibilidad","nutrición",
-    "calentamiento","postura","respiración","higiene","voleibol","natación",
-  ],
-};
-
-function inferSubject(topic: string): string | null {
-  const lower = topic.toLowerCase();
-  let best: string | null = null;
-  let bestScore = 0;
-  for (const [subj, kws] of Object.entries(SUBJECT_KEYWORDS)) {
-    const score = kws.filter((kw) => lower.includes(kw)).length;
-    if (score > bestScore) { bestScore = score; best = subj; }
-  }
-  return bestScore > 0 ? best : null;
-}
 
 // ── Phase accent colors ──────────────────────────────────────
 const phaseColors = [
@@ -95,28 +33,8 @@ export default function Planning() {
 
   const [topic, setTopic]           = useState("");
   const [subject, setSubject]       = useState("");
-  const [suggestedSubject, setSuggestedSubject] = useState<string | null>(null);
-  const [subjectUserPicked, setSubjectUserPicked] = useState(false);
   const [grade, setGrade]           = useState("");
   const [context, setContext]       = useState("");
-
-  // Debounced subject inference from topic
-  const inferTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(() => {
-    if (inferTimer.current) clearTimeout(inferTimer.current);
-    if (topic.trim().length < 4) { setSuggestedSubject(null); return; }
-    inferTimer.current = setTimeout(() => {
-      const inferred = inferSubject(topic);
-      setSuggestedSubject(inferred);
-      // Auto-select only if the user hasn't manually changed it
-      if (inferred && !subjectUserPicked) setSubject(inferred);
-    }, 450);
-    return () => { if (inferTimer.current) clearTimeout(inferTimer.current); };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [topic]);
-  const [objectives, setObjectives] = useState("");
-  const [methodology, setMethodology] = useState("");
-  const [observations, setObservations] = useState("");
   const [selectedSections, setSelectedSections] = useState<SectionKey[]>(
     SECTION_PRESETS[0].sections // default: Completa
   );
@@ -174,9 +92,6 @@ export default function Planning() {
         subject,
         grade,
         topic,
-        objectives:     objectives || undefined,
-        methodology:    methodology || undefined,
-        observations:   observations || undefined,
         content:         activePlan,
         selected_sections: selectedSections,
       });
@@ -236,67 +151,26 @@ export default function Planning() {
                 />
               </div>
 
-              {/* Subject — inferred from topic, editable */}
+              {/* Subject */}
               <div>
-                <div className="flex items-center gap-2 label mb-2" style={{ color: 'var(--color-mute)' }}>
-                  Área
-                  {suggestedSubject && !subjectUserPicked && (
-                    <span className="chip" style={{ fontSize: 10, padding: '1px 7px', background: 'var(--color-mint)' }}>
-                      sugerido ✦
-                    </span>
-                  )}
-                </div>
+                <div className="label mb-2" style={{ color: 'var(--color-mute)' }}>Área</div>
                 <div className="flex flex-wrap gap-1.5 mt-2">
-                  {subjects.map((s) => {
-                    const isSelected  = subject === s;
-                    const isSuggested = suggestedSubject === s && !subjectUserPicked;
-                    return (
-                      <button
-                        key={s}
-                        onClick={() => {
-                          const next = s === subject ? "" : s;
-                          setSubject(next);
-                          setSubjectUserPicked(true);
-                        }}
-                        className="chip transition-all"
-                        style={{
-                          background:  isSelected ? 'var(--color-blush)' : 'var(--color-paper)',
-                          borderColor: isSelected ? 'var(--color-orange)'
-                            : isSuggested ? 'var(--color-mint)'
-                            : 'oklch(0.24 0.06 340 / 0.3)',
-                          fontSize: 12,
-                          padding: '4px 10px',
-                          outline: isSuggested && !isSelected ? '2px dashed var(--color-mint)' : 'none',
-                          outlineOffset: 2,
-                        }}
-                      >
-                        {s}
-                      </button>
-                    );
-                  })}
+                  {subjects.map((s) => (
+                    <button
+                      key={s}
+                      onClick={() => setSubject(s === subject ? "" : s)}
+                      className="chip transition-all"
+                      style={{
+                        background:  subject === s ? 'var(--color-blush)' : 'var(--color-paper)',
+                        borderColor: subject === s ? 'var(--color-orange)' : 'oklch(0.24 0.06 340 / 0.3)',
+                        fontSize: 12,
+                        padding: '4px 10px',
+                      }}
+                    >
+                      {s}
+                    </button>
+                  ))}
                 </div>
-
-                {/* Soft coherence warning */}
-                {subjectUserPicked && suggestedSubject && subject && subject !== suggestedSubject && (
-                  <div
-                    className="mt-2 flex items-start gap-2 p-2.5 rounded-xl text-[12px] font-medium"
-                    style={{ background: 'var(--color-butter)', border: '1.5px solid oklch(0.24 0.06 340 / 0.25)' }}
-                  >
-                    <AlertTriangle size={12} style={{ color: 'var(--color-orange)', flexShrink: 0, marginTop: 1 }} />
-                    <span style={{ color: 'var(--color-plum)' }}>
-                      "{topic.slice(0, 30)}{topic.length > 30 ? '…' : ''}" suena más a{' '}
-                      <strong>{suggestedSubject}</strong>.
-                      ¿Seguro que es <strong>{subject}</strong>?{' '}
-                      <button
-                        type="button"
-                        onClick={() => { setSubject(suggestedSubject); setSubjectUserPicked(false); }}
-                        style={{ color: 'var(--color-orange)', fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-                      >
-                        Usar sugerido
-                      </button>
-                    </span>
-                  </div>
-                )}
               </div>
 
               {/* Grade */}
@@ -367,7 +241,7 @@ export default function Planning() {
                 </div>
 
                 {/* Individual toggles */}
-                <div className="grid grid-cols-2 gap-1.5">
+                <div className="flex flex-col gap-1.5">
                   {(Object.keys(SECTION_LABELS) as SectionKey[]).map((key) => {
                     const mandatory = MANDATORY_SECTIONS.includes(key);
                     const checked   = mandatory || selectedSections.includes(key);
@@ -382,7 +256,7 @@ export default function Planning() {
                             prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]
                           );
                         }}
-                        className="flex items-center gap-1.5 px-2.5 py-2 rounded-xl transition-all text-left"
+                        className="flex items-center gap-1.5 px-2.5 py-2 rounded-xl transition-all text-left w-full"
                         style={{
                           fontSize: 11,
                           fontWeight: 600,
@@ -393,10 +267,10 @@ export default function Planning() {
                           cursor: mandatory ? 'default' : 'pointer',
                         }}
                       >
-                        <span style={{ color: checked ? 'var(--color-orange)' : 'var(--color-mute)', fontSize: 10 }}>
+                        <span style={{ color: checked ? 'var(--color-orange)' : 'var(--color-mute)', fontSize: 10, flexShrink: 0 }}>
                           {checked ? '✓' : '○'}
                         </span>
-                        <span className="truncate">{SECTION_LABELS[key]}</span>
+                        <span>{SECTION_LABELS[key]}</span>
                         {mandatory && (
                           <span style={{ fontSize: 9, color: 'var(--color-mute)', marginLeft: 'auto', flexShrink: 0 }}>
                             req.
@@ -761,28 +635,6 @@ export default function Planning() {
                   </div>
                 )}
 
-                {/* Extra editable fields */}
-                <div className="mt-10 space-y-6" style={{ borderTop: '1.5px dashed oklch(0.24 0.06 340 / 0.3)', paddingTop: 32 }}>
-                  <div className="label" style={{ color: 'var(--color-mute)' }}>— Campos adicionales (opcionales)</div>
-
-                  {[
-                    { label: 'Objetivos', value: objectives, setter: setObjectives, placeholder: 'Describe los objetivos de aprendizaje…' },
-                    { label: 'Metodología', value: methodology, setter: setMethodology, placeholder: 'Enfoque pedagógico, estrategias didácticas…' },
-                    { label: 'Observaciones', value: observations, setter: setObservations, placeholder: 'Notas, ajustes, contexto especial…' },
-                  ].map(({ label, value, setter, placeholder }) => (
-                    <div key={label}>
-                      <div className="label mb-2" style={{ color: 'var(--color-mute)' }}>{label}</div>
-                      <textarea
-                        rows={3}
-                        value={value}
-                        onChange={(e) => setter(e.target.value)}
-                        placeholder={placeholder}
-                        className="w-full bg-transparent border rounded-xl p-3 text-[14px] font-medium leading-relaxed resize-none focus:outline-none"
-                        style={{ borderColor: 'oklch(0.24 0.06 340 / 0.2)', color: 'var(--color-plum)' }}
-                      />
-                    </div>
-                  ))}
-                </div>
               </div>
 
             </motion.div>
