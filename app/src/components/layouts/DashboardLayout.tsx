@@ -12,21 +12,21 @@ interface DashboardLayoutProps {
   children: React.ReactNode;
 }
 
-const teacherTabs = [
+type NavTab = { to: string; label: string; emoji: string; bg: string };
+
+const teacherTabs: NavTab[] = [
   { to: '/dashboard', label: 'Panel',      emoji: '✿', bg: 'var(--color-blush)'  },
   { to: '/planning',  label: 'Planeación', emoji: '✎', bg: 'var(--color-butter)' },
   { to: '/my-plans',  label: 'Mis Planes', emoji: '✦', bg: 'var(--color-mint)'   },
   { to: '/classes',   label: 'Clases',     emoji: '✤', bg: 'var(--color-lilac)'  },
   { to: '/weekly',    label: 'Semana',     emoji: '◷', bg: 'var(--color-sky)'    },
-] as const;
+];
 
-const coordinatorTabs = [
-  { to: '/coordinator', label: 'Revisión', emoji: '✿', bg: 'var(--color-blush)' },
-] as const;
+// TODO B2B: restaurar coordinatorTabs cuando lancemos oferta institucional
 
-const adminTabs = [
+const adminTabs: NavTab[] = [
   { to: '/admin', label: 'Instituciones', emoji: '✦', bg: 'var(--color-lilac)' },
-] as const;
+];
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const { user, displayName } = useAuth();
@@ -41,8 +41,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const { isOnline, pendingCount } = useOnlineStatus();
 
   const tabs =
-    profile?.role === 'admin'       ? adminTabs :
-    profile?.role === 'coordinator' ? coordinatorTabs :
+    profile?.role === 'admin' ? adminTabs :
     teacherTabs;
 
   const initials = headerName
@@ -60,11 +59,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       {/* ── Top bar ──────────────────────────────────────────── */}
       <header className="mx-auto max-w-[1320px] px-4 sm:px-6 md:px-10 pt-5 pb-3 flex items-center justify-between gap-3">
 
-        <Mark to={
-          profile?.role === 'admin'       ? '/admin' :
-          profile?.role === 'coordinator' ? '/coordinator' :
-          '/dashboard'
-        } />
+        <Mark to={profile?.role === 'admin' ? '/admin' : '/dashboard'} />
 
         {/* Tab navigation — hidden on mobile (bottom bar takes over) */}
         <nav

@@ -107,15 +107,63 @@ export interface PlanPhase {
   duration: number;
 }
 
+export type SectionKey =
+  | 'objective'
+  | 'specific_objectives'
+  | 'materials'
+  | 'sequence'
+  | 'evaluation'
+  | 'reflection'
+  | 'adaptations'
+  | 'homework';
+
+export const SECTION_LABELS: Record<SectionKey, string> = {
+  objective:           'Objetivo general',
+  specific_objectives: 'Objetivos específicos',
+  materials:           'Materiales',
+  sequence:            'Secuencia didáctica',
+  evaluation:          'Criterios de evaluación',
+  reflection:          'Reflexión pedagógica',
+  adaptations:         'Adaptaciones especiales',
+  homework:            'Tarea / trabajo en casa',
+};
+
+// sequence is mandatory and cannot be deselected — it's the heart of the plan
+export const MANDATORY_SECTIONS: SectionKey[] = ['sequence'];
+
+export const SECTION_PRESETS: { label: string; sections: SectionKey[] }[] = [
+  {
+    label: 'Completa',
+    sections: ['objective', 'specific_objectives', 'materials', 'sequence', 'evaluation', 'reflection', 'adaptations', 'homework'],
+  },
+  {
+    label: 'Express',
+    sections: ['objective', 'sequence'],
+  },
+  {
+    label: 'Con evaluación',
+    sections: ['objective', 'sequence', 'evaluation'],
+  },
+  {
+    label: 'Detallada',
+    sections: ['objective', 'specific_objectives', 'materials', 'sequence', 'evaluation', 'reflection'],
+  },
+];
+
 export interface PlanIdea {
   title: string;
   type: string;
-  objective: string;
   description: string;
   duration: number;
-  materials: string[];
-  sequence: PlanPhase[];
-  evaluation: string;
+  // All content sections are optional — only present if selected
+  objective?:           string;
+  specific_objectives?: string[];
+  materials?:           string[];
+  sequence?:            PlanPhase[];
+  evaluation?:          string;
+  reflection?:          string;
+  adaptations?:         string[];
+  homework?:            string;
 }
 
 export interface LessonPlan {
@@ -140,6 +188,7 @@ export interface LessonPlan {
   coordinator_comment?: string | null;
   reviewed_by?: string | null;
   reviewed_at?: string | null;
+  selected_sections?: string[] | null;
   export_data?: Record<string, unknown> | null;
   created_at?: string;
   updated_at?: string;

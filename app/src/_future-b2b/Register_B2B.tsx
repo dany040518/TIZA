@@ -2,9 +2,10 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Check, X } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
+import { validateInviteCode } from '@/lib/db';
 import { Mark, Star, Blob } from '@/components/tiza/Mark';
 
-// TODO B2B: el flujo con código de institución está en src/_future-b2b/Register_B2B.tsx
+type Step = 'code' | 'details' | 'success';
 
 const DIAL_CODES = [
   { code: '+57',  flag: '🇨🇴', name: 'Colombia'         },
@@ -54,50 +55,90 @@ function isValidName(name: string) {
 }
 
 const PWD_RULES: { key: keyof PwdCheck; label: string }[] = [
-  { key: 'length',    label: 'Mínimo 8 caracteres'                   },
-  { key: 'uppercase', label: 'Al menos una letra mayúscula'          },
-  { key: 'number',    label: 'Al menos un número'                    },
+  { key: 'length',    label: 'Mínimo 8 caracteres'          },
+  { key: 'uppercase', label: 'Al menos una letra mayúscula' },
+  { key: 'number',    label: 'Al menos un número'           },
   { key: 'special',   label: 'Al menos un carácter especial (!@#$…)' },
 ];
 
 export default function Register() {
-  const [fullName, setFullName]         = useState('');
-  const [email, setEmail]               = useState('');
-  const [dialCode, setDialCode]         = useState('+57');
-  const [phoneNumber, setPhoneNumber]   = useState('');
-  const [password, setPassword]         = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [success, setSuccess]           = useState(false);
+  const [step, setStep]                       = useState<Step>('code');
+  const [inviteCode, setInviteCode]           = useState('');
+  const [institutionId, setInstitutionId]     = useState('');
+  const [institutionName, setInstitutionName] = useState('');
+  const [codeRole, setCodeRole]               = useState<'teacher' | 'coordinator'>('teacher');
 
+  // details fields
+  const [fullName, setFullName]       = useState('');
+  const [email, setEmail]             = useState('');
+  const [dialCode, setDialCode]       = useState('+57');
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [password, setPassword]       = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+
+  // inline validation errors
   const [nameError, setNameError]   = useState('');
   const [emailError, setEmailError] = useState('');
   const [phoneError, setPhoneError] = useState('');
-  const [error, setError]           = useState('');
-  const [loading, setLoading]       = useState(false);
 
+  const [error, setError]     = useState('');
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
   const pwdCheck = checkPassword(password);
   const pwdValid = Object.values(pwdCheck).every(Boolean);
 
+  // ── Step 1 ───────────────────────────────────────────────
+  const handleValidateCode = async (e: React.BaseSyntheticEvent) => {
+    e.preventDefault();
+    if (!inviteCode.trim()) return;
+    setError('');
+    setLoading(true);
+    try {
+      const result = await validateInviteCode(inviteCode.trim());
+      if (!result.is_valid || !result.institution_id) {
+        setError('Código inválido o expirado. Verifica con tu institución.');
+        return;
+      }
+      setInstitutionId(result.institution_id);
+      setInstitutionName(result.institution_name ?? '');
+      setCodeRole((result.role as 'teacher' | 'coordinator') ?? 'teacher');
+      setStep('details');
+    } catch {
+      setError('No se pudo validar el código. Intenta de nuevo.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ── Step 2 ───────────────────────────────────────────────
   const handleRegister = async (e: React.BaseSyntheticEvent) => {
     e.preventDefault();
     setError('');
+
+    // Client-side validation
     let hasError = false;
 
     if (!isValidName(fullName)) {
       setNameError('El nombre debe tener al menos 3 letras y no contener números.');
       hasError = true;
-    } else { setNameError(''); }
+    } else {
+      setNameError('');
+    }
 
     if (!isValidEmail(email)) {
       setEmailError('Ingresa un correo electrónico válido (ej. nombre@escuela.edu).');
       hasError = true;
-    } else { setEmailError(''); }
+    } else {
+      setEmailError('');
+    }
 
     if (phoneNumber && phoneNumber.length < 7) {
       setPhoneError('El número debe tener al menos 7 dígitos.');
       hasError = true;
-    } else { setPhoneError(''); }
+    } else {
+      setPhoneError('');
+    }
 
     if (!pwdValid) {
       setError('La contraseña no cumple con todos los requisitos de seguridad.');
@@ -115,8 +156,9 @@ export default function Register() {
         password,
         options: {
           data: {
-            full_name: fullName.trim(),
-            role: 'teacher',
+            full_name:   fullName.trim(),
+            invite_code: inviteCode.trim().toUpperCase(),
+            role:        codeRole,
             phone,
           },
         },
@@ -124,6 +166,7 @@ export default function Register() {
 
       if (signUpError) throw signUpError;
 
+      // Try to persist phone to app_users (trigger may create the row async)
       if (data.user && phone) {
         await supabase.from('app_users').update({ phone }).eq('id', data.user.id);
       }
@@ -131,7 +174,7 @@ export default function Register() {
       if (data.session) {
         navigate('/dashboard');
       } else {
-        setSuccess(true);
+        setStep('success');
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Error al crear la cuenta.';
@@ -196,7 +239,9 @@ export default function Register() {
             <span className="serif-em" style={{ color: 'var(--color-orange)' }}>espacio</span>.
           </h1>
           <p className="mt-3 text-[14px] sm:text-[16px] font-medium" style={{ color: 'var(--color-mute)', lineHeight: 1.5 }}>
-            Únete gratis. Sin código ni institución.
+            {step === 'code'
+              ? 'Ingresa el código de tu institución para comenzar.'
+              : `Institución: ${institutionName}`}
           </p>
 
           {error && (
@@ -208,8 +253,78 @@ export default function Register() {
             </div>
           )}
 
-          {!success ? (
+          {/* ── Step 1: invite code ─────────────────────────── */}
+          {step === 'code' && (
+            <form onSubmit={handleValidateCode} className="mt-8 sm:mt-10 space-y-5 sm:space-y-6">
+              <div>
+                <div className="label mb-2" style={{ color: 'var(--color-mute)' }}>Código de institución</div>
+                <input
+                  required
+                  value={inviteCode}
+                  onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
+                  placeholder="TIZA2026"
+                  className="w-full bg-transparent border-0 border-b py-2.5 text-[18px] sm:text-[20px] font-bold tracking-widest focus:outline-none transition-colors"
+                  style={inputStyle}
+                />
+                <p className="mt-2 text-[12px] font-medium" style={{ color: 'var(--color-mute)' }}>
+                  Pídele el código a tu coordinador o institución.
+                </p>
+              </div>
+              <div className="pt-1 sm:pt-2">
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="btn-chunky btn-chunky-primary w-full justify-center"
+                  style={{ padding: '14px 24px', fontSize: 14 }}
+                >
+                  {loading ? (
+                    <><span className="ink-pulse" />Verificando…</>
+                  ) : (
+                    <>Verificar código →</>
+                  )}
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* ── Step 2: personal details ────────────────────── */}
+          {step === 'details' && (
             <form onSubmit={handleRegister} className="mt-8 sm:mt-10 space-y-5 sm:space-y-6" noValidate>
+
+              {/* Institution chip */}
+              <div
+                className="sticker p-3 sm:p-4 flex items-center gap-3"
+                style={{ background: 'var(--color-mint)' }}
+              >
+                <span style={{ color: 'var(--color-orange)', fontSize: 18 }}>✓</span>
+                <span className="font-semibold text-[13px] truncate">{institutionName}</span>
+                <button
+                  type="button"
+                  className="ml-auto text-[12px] shrink-0"
+                  style={{ color: 'var(--color-mute)' }}
+                  onClick={() => { setStep('code'); setError(''); }}
+                >
+                  Cambiar
+                </button>
+              </div>
+
+              {/* Role badge */}
+              <div
+                className="sticker p-3 flex items-center gap-3"
+                style={{ background: codeRole === 'coordinator' ? 'var(--color-lilac)' : 'var(--color-butter)' }}
+              >
+                <span style={{ color: 'var(--color-orange)', fontSize: 16 }}>
+                  {codeRole === 'coordinator' ? '✦' : '✎'}
+                </span>
+                <div>
+                  <div className="font-bold text-[13px]">
+                    {codeRole === 'coordinator' ? 'Coordinador' : 'Docente'}
+                  </div>
+                  <div className="text-[11px]" style={{ color: 'var(--color-mute)' }}>
+                    Rol asignado por tu código de acceso
+                  </div>
+                </div>
+              </div>
 
               {/* Full name */}
               <div>
@@ -257,7 +372,7 @@ export default function Register() {
                 )}
               </div>
 
-              {/* Phone (optional) */}
+              {/* Phone */}
               <div>
                 <div className="label mb-2" style={{ color: 'var(--color-mute)' }}>
                   Teléfono <span className="font-normal">(opcional)</span>
@@ -326,6 +441,7 @@ export default function Register() {
                   </button>
                 </div>
 
+                {/* Password strength checklist */}
                 {password.length > 0 && (
                   <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-1.5">
                     {PWD_RULES.map(({ key, label }) => (
@@ -342,17 +458,21 @@ export default function Register() {
                   </div>
                 )}
 
+                {/* Strength bar */}
                 {password.length > 0 && (
                   <div className="mt-3 flex gap-1">
                     {[0, 1, 2, 3].map((i) => {
                       const filled = Object.values(pwdCheck).filter(Boolean).length > i;
+                      const allDone = pwdValid;
                       return (
                         <div
                           key={i}
                           className="flex-1 h-1 rounded-full transition-all"
                           style={{
                             background: filled
-                              ? pwdValid ? 'var(--color-orange)' : 'oklch(0.75 0.10 60)'
+                              ? allDone
+                                ? 'var(--color-orange)'
+                                : 'oklch(0.75 0.10 60)'
                               : 'oklch(0.24 0.06 340 / 0.15)',
                           }}
                         />
@@ -361,6 +481,8 @@ export default function Register() {
                   </div>
                 )}
               </div>
+
+              <input type="hidden" value={institutionId} />
 
               <div className="pt-2">
                 <button
@@ -377,7 +499,10 @@ export default function Register() {
                 </button>
               </div>
             </form>
-          ) : (
+          )}
+
+          {/* ── Step 3: success / confirm email ─────────────── */}
+          {step === 'success' && (
             <div className="mt-8 sm:mt-10 space-y-5 sm:space-y-6">
               <div className="sticker p-5 sm:p-6" style={{ background: 'var(--color-mint)' }}>
                 <div className="font-hand text-[26px] sm:text-[28px] mb-2" style={{ color: 'var(--color-orange)' }}>
@@ -400,7 +525,7 @@ export default function Register() {
             </div>
           )}
 
-          {!success && (
+          {step !== 'success' && (
             <p className="mt-6 sm:mt-8 text-[13px] font-medium" style={{ color: 'var(--color-mute)' }}>
               ¿Ya tienes cuenta?{' '}
               <Link

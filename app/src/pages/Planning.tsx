@@ -1,5 +1,5 @@
-import { Sparkles, X, BookmarkCheck, Check } from "lucide-react";
-import { useState } from "react";
+import { Sparkles, X, BookmarkCheck, Check, AlertTriangle } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
@@ -9,6 +9,70 @@ import DashboardLayout from "../components/layouts/DashboardLayout";
 import { Star, Squiggle } from "@/components/tiza/Mark";
 import { useToast } from "@/components/Toast";
 import type { PlanIdea } from "@/types";
+import type { SectionKey } from "@/types";
+import { SECTION_LABELS, SECTION_PRESETS, MANDATORY_SECTIONS } from "@/types";
+
+// ── Subject inference by keyword matching ────────────────────
+// Tradeoff: keywords >> llamada al modelo → sin latencia, sin tokens extra,
+// extensible fácilmente. Suficiente para los casos más comunes en español.
+const SUBJECT_KEYWORDS: Record<string, string[]> = {
+  "Matemáticas": [
+    "ecuación","función","álgebra","geometría","fracción","número","cálculo",
+    "estadística","probabilidad","trigonometría","derivada","integral","suma",
+    "resta","multiplicación","división","proporción","porcentaje","vector",
+    "polinomio","logaritmo","teorema","factorial","conjunto","matriz",
+  ],
+  "Ciencias Naturales": [
+    "célula","organismo","ecosistema","fotosíntesis","evolución","adn","gen",
+    "bacteria","virus","animal","planta","biología","química","átomo","molécula",
+    "reacción","elemento","física","fuerza","energía","movimiento","electricidad",
+    "magnetismo","óptica","onda","calor","temperatura","eucariota","procariota",
+    "mitosis","meiosis","genética","gravedad","fricción","presión","densidad",
+  ],
+  "Lengua/Español": [
+    "lectura","escritura","gramática","ortografía","narración","texto","cuento",
+    "poema","novela","verbo","sustantivo","adjetivo","puntuación","párrafo",
+    "ensayo","sinónimo","antónimo","análisis literario","redacción","literatura",
+    "oración","sílaba","acento","vocales","consonantes","comprensión lectora",
+  ],
+  "Ciencias Sociales": [
+    "historia","geografía","cultura","sociedad","democracia","gobierno","economía",
+    "revolución","guerra","paz","mapa","región","país","continente","civilización",
+    "ciudadanía","derecho","político","social","colonial","independencia","república",
+  ],
+  "Inglés": [
+    "english","grammar","vocabulary","pronunciation","reading","writing",
+    "listening","speaking","verb tense","past tense","present","future",
+    "conditional","phrasal verb","idiom","inglés",
+  ],
+  "Tecnología": [
+    "programación","código","algoritmo","computadora","internet","software",
+    "hardware","robot","automatización","inteligencia artificial","app","web",
+    "digital","base de datos","red","sistema operativo","variable","función",
+    "ciclo","condicional","python","javascript","html","css",
+  ],
+  "Arte": [
+    "pintura","dibujo","escultura","música","danza","teatro","arte","color",
+    "forma","expresión","creación","diseño","composición","ritmo","melodía",
+    "armonía","perspectiva","acuarela","collage","cerámica","fotografía",
+  ],
+  "Educación Física": [
+    "deporte","ejercicio","salud","cuerpo","movimiento","fútbol","baloncesto",
+    "atletismo","coordinación","resistencia","flexibilidad","nutrición",
+    "calentamiento","postura","respiración","higiene","voleibol","natación",
+  ],
+};
+
+function inferSubject(topic: string): string | null {
+  const lower = topic.toLowerCase();
+  let best: string | null = null;
+  let bestScore = 0;
+  for (const [subj, kws] of Object.entries(SUBJECT_KEYWORDS)) {
+    const score = kws.filter((kw) => lower.includes(kw)).length;
+    if (score > bestScore) { bestScore = score; best = subj; }
+  }
+  return bestScore > 0 ? best : null;
+}
 
 // ── Phase accent colors ──────────────────────────────────────
 const phaseColors = [
@@ -29,13 +93,33 @@ export default function Planning() {
   const { profile } = useProfile();
   const { error: toastError, success: toastSuccess } = useToast();
 
-  const [subject, setSubject]       = useState("");
-  const [grade, setGrade]           = useState("");
   const [topic, setTopic]           = useState("");
+  const [subject, setSubject]       = useState("");
+  const [suggestedSubject, setSuggestedSubject] = useState<string | null>(null);
+  const [subjectUserPicked, setSubjectUserPicked] = useState(false);
+  const [grade, setGrade]           = useState("");
   const [context, setContext]       = useState("");
+
+  // Debounced subject inference from topic
+  const inferTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (inferTimer.current) clearTimeout(inferTimer.current);
+    if (topic.trim().length < 4) { setSuggestedSubject(null); return; }
+    inferTimer.current = setTimeout(() => {
+      const inferred = inferSubject(topic);
+      setSuggestedSubject(inferred);
+      // Auto-select only if the user hasn't manually changed it
+      if (inferred && !subjectUserPicked) setSubject(inferred);
+    }, 450);
+    return () => { if (inferTimer.current) clearTimeout(inferTimer.current); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [topic]);
   const [objectives, setObjectives] = useState("");
   const [methodology, setMethodology] = useState("");
   const [observations, setObservations] = useState("");
+  const [selectedSections, setSelectedSections] = useState<SectionKey[]>(
+    SECTION_PRESETS[0].sections // default: Completa
+  );
   const [loading, setLoading]       = useState(false);
   const [ideas, setIdeas]           = useState<PlanIdea[]>([]);
   const [selected, setSelected]     = useState<PlanIdea | null>(null);
@@ -59,7 +143,7 @@ export default function Planning() {
     setSaved(false);
 
     try {
-      const result = await generateLessonPlan(subject, grade, topic, context);
+      const result = await generateLessonPlan(subject, grade, topic, context, selectedSections);
       if (result?.ideas) {
         setIdeas(result.ideas);
       }
@@ -93,7 +177,8 @@ export default function Planning() {
         objectives:     objectives || undefined,
         methodology:    methodology || undefined,
         observations:   observations || undefined,
-        content:        activePlan,
+        content:         activePlan,
+        selected_sections: selectedSections,
       });
       setSaved(true);
       toastSuccess('Planeación guardada correctamente.');
@@ -151,26 +236,67 @@ export default function Planning() {
                 />
               </div>
 
-              {/* Subject */}
+              {/* Subject — inferred from topic, editable */}
               <div>
-                <div className="label mb-2" style={{ color: 'var(--color-mute)' }}>Área</div>
-                <div className="flex flex-wrap gap-1.5 mt-2">
-                  {subjects.map((s) => (
-                    <button
-                      key={s}
-                      onClick={() => setSubject(s === subject ? "" : s)}
-                      className="chip transition-all"
-                      style={{
-                        background: subject === s ? 'var(--color-blush)' : 'var(--color-paper)',
-                        borderColor: subject === s ? 'var(--color-orange)' : 'oklch(0.24 0.06 340 / 0.3)',
-                        fontSize: 12,
-                        padding: '4px 10px',
-                      }}
-                    >
-                      {s}
-                    </button>
-                  ))}
+                <div className="flex items-center gap-2 label mb-2" style={{ color: 'var(--color-mute)' }}>
+                  Área
+                  {suggestedSubject && !subjectUserPicked && (
+                    <span className="chip" style={{ fontSize: 10, padding: '1px 7px', background: 'var(--color-mint)' }}>
+                      sugerido ✦
+                    </span>
+                  )}
                 </div>
+                <div className="flex flex-wrap gap-1.5 mt-2">
+                  {subjects.map((s) => {
+                    const isSelected  = subject === s;
+                    const isSuggested = suggestedSubject === s && !subjectUserPicked;
+                    return (
+                      <button
+                        key={s}
+                        onClick={() => {
+                          const next = s === subject ? "" : s;
+                          setSubject(next);
+                          setSubjectUserPicked(true);
+                        }}
+                        className="chip transition-all"
+                        style={{
+                          background:  isSelected ? 'var(--color-blush)' : 'var(--color-paper)',
+                          borderColor: isSelected ? 'var(--color-orange)'
+                            : isSuggested ? 'var(--color-mint)'
+                            : 'oklch(0.24 0.06 340 / 0.3)',
+                          fontSize: 12,
+                          padding: '4px 10px',
+                          outline: isSuggested && !isSelected ? '2px dashed var(--color-mint)' : 'none',
+                          outlineOffset: 2,
+                        }}
+                      >
+                        {s}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Soft coherence warning */}
+                {subjectUserPicked && suggestedSubject && subject && subject !== suggestedSubject && (
+                  <div
+                    className="mt-2 flex items-start gap-2 p-2.5 rounded-xl text-[12px] font-medium"
+                    style={{ background: 'var(--color-butter)', border: '1.5px solid oklch(0.24 0.06 340 / 0.25)' }}
+                  >
+                    <AlertTriangle size={12} style={{ color: 'var(--color-orange)', flexShrink: 0, marginTop: 1 }} />
+                    <span style={{ color: 'var(--color-plum)' }}>
+                      "{topic.slice(0, 30)}{topic.length > 30 ? '…' : ''}" suena más a{' '}
+                      <strong>{suggestedSubject}</strong>.
+                      ¿Seguro que es <strong>{subject}</strong>?{' '}
+                      <button
+                        type="button"
+                        onClick={() => { setSubject(suggestedSubject); setSubjectUserPicked(false); }}
+                        style={{ color: 'var(--color-orange)', fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+                      >
+                        Usar sugerido
+                      </button>
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* Grade */}
@@ -209,6 +335,77 @@ export default function Planning() {
                     color: 'var(--color-plum)',
                   }}
                 />
+              </div>
+
+              {/* Section selector */}
+              <div>
+                <div className="label mb-2" style={{ color: 'var(--color-mute)' }}>Secciones a incluir</div>
+
+                {/* Presets */}
+                <div className="flex flex-wrap gap-1.5 mb-3">
+                  {SECTION_PRESETS.map((preset) => {
+                    const active = JSON.stringify([...preset.sections].sort()) ===
+                      JSON.stringify([...selectedSections].sort());
+                    return (
+                      <button
+                        key={preset.label}
+                        type="button"
+                        onClick={() => setSelectedSections([...preset.sections])}
+                        className="chip transition-all"
+                        style={{
+                          fontSize: 11,
+                          padding: '3px 9px',
+                          background: active ? 'var(--color-plum)' : 'var(--color-paper)',
+                          color: active ? 'var(--color-cream)' : 'var(--color-plum)',
+                          borderColor: active ? 'var(--color-plum)' : 'oklch(0.24 0.06 340 / 0.3)',
+                        }}
+                      >
+                        {preset.label}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Individual toggles */}
+                <div className="grid grid-cols-2 gap-1.5">
+                  {(Object.keys(SECTION_LABELS) as SectionKey[]).map((key) => {
+                    const mandatory = MANDATORY_SECTIONS.includes(key);
+                    const checked   = mandatory || selectedSections.includes(key);
+                    return (
+                      <button
+                        key={key}
+                        type="button"
+                        disabled={mandatory}
+                        onClick={() => {
+                          if (mandatory) return;
+                          setSelectedSections((prev) =>
+                            prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]
+                          );
+                        }}
+                        className="flex items-center gap-1.5 px-2.5 py-2 rounded-xl transition-all text-left"
+                        style={{
+                          fontSize: 11,
+                          fontWeight: 600,
+                          background: checked ? 'var(--color-mint)' : 'var(--color-paper)',
+                          border: `1.5px solid ${checked ? 'var(--color-plum)' : 'oklch(0.24 0.06 340 / 0.2)'}`,
+                          color: 'var(--color-plum)',
+                          opacity: mandatory ? 0.7 : 1,
+                          cursor: mandatory ? 'default' : 'pointer',
+                        }}
+                      >
+                        <span style={{ color: checked ? 'var(--color-orange)' : 'var(--color-mute)', fontSize: 10 }}>
+                          {checked ? '✓' : '○'}
+                        </span>
+                        <span className="truncate">{SECTION_LABELS[key]}</span>
+                        {mandatory && (
+                          <span style={{ fontSize: 9, color: 'var(--color-mute)', marginLeft: 'auto', flexShrink: 0 }}>
+                            req.
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
               <button
@@ -326,12 +523,14 @@ export default function Planning() {
                         <h2 className="font-bold mt-1 text-[19px] leading-snug tracking-tight">
                           {selected.title}
                         </h2>
-                        <p className="text-[13px] font-medium mt-2 leading-relaxed" style={{ color: 'var(--color-mute)' }}>
-                          {selected.objective}
-                        </p>
+                        {selected.objective && (
+                          <p className="text-[13px] font-medium mt-2 leading-relaxed" style={{ color: 'var(--color-mute)' }}>
+                            {selected.objective}
+                          </p>
+                        )}
 
                         <div className="mt-5 space-y-4 flex-1">
-                          {(selected.sequence || []).map((fase, i) => (
+                          {(selected.sequence ?? []).map((fase, i) => (
                             <div key={i} className="flex gap-3">
                               <div className="flex flex-col items-center shrink-0">
                                 <span className="label" style={{ color: phaseColors[i % 3] }}>
@@ -458,13 +657,24 @@ export default function Planning() {
                 <h2 className="font-display" style={{ fontSize: 'clamp(28px, 4vw, 46px)' }}>
                   {activePlan.title}
                 </h2>
-                <p className="serif-em mt-4 text-[17px]" style={{ color: 'var(--color-mute)', lineHeight: 1.6 }}>
-                  {activePlan.objective}
-                </p>
+                {activePlan.objective && (
+                  <p className="serif-em mt-4 text-[17px]" style={{ color: 'var(--color-mute)', lineHeight: 1.6 }}>
+                    {activePlan.objective}
+                  </p>
+                )}
+                {activePlan.specific_objectives && activePlan.specific_objectives.length > 0 && (
+                  <ul className="mt-3 space-y-1">
+                    {activePlan.specific_objectives.map((o, i) => (
+                      <li key={i} className="flex items-baseline gap-2 text-[14px] font-medium" style={{ color: 'var(--color-mute)' }}>
+                        <span style={{ color: 'var(--color-orange)' }}>·</span>{o}
+                      </li>
+                    ))}
+                  </ul>
+                )}
 
                 {/* Sequence */}
                 <div className="mt-12 space-y-8">
-                  {(activePlan.sequence || []).map((fase, i) => (
+                  {(activePlan.sequence ?? []).map((fase, i) => (
                     <div
                       key={i}
                       className="relative pl-8"
@@ -490,14 +700,14 @@ export default function Planning() {
                 </div>
 
                 {/* Materials */}
-                {activePlan.materials?.length > 0 && (
+                {(activePlan.materials ?? []).length > 0 && (
                   <div
                     className="mt-10 pt-8"
                     style={{ borderTop: '1.5px dashed oklch(0.24 0.06 340 / 0.3)' }}
                   >
                     <div className="label mb-4" style={{ color: 'var(--color-mute)' }}>— Materiales</div>
                     <ul className="grid grid-cols-2 gap-x-8 gap-y-2">
-                      {activePlan.materials.map((m, i) => (
+                      {(activePlan.materials ?? []).map((m, i) => (
                         <li key={i} className="flex items-baseline gap-2 text-[14px] font-medium" style={{ color: 'var(--color-mute)' }}>
                           <span style={{ color: 'var(--color-orange)' }}>·</span>
                           {m}
@@ -508,12 +718,48 @@ export default function Planning() {
                 )}
 
                 {/* Evaluation */}
-                <div className="mt-10 sticker p-6" style={{ background: 'var(--color-blush)' }}>
-                  <div className="label mb-3" style={{ color: 'var(--color-orange)' }}>— Evaluación</div>
-                  <p className="serif-em text-[17px]" style={{ lineHeight: 1.65 }}>
-                    "{activePlan.evaluation}"
-                  </p>
-                </div>
+                {activePlan.evaluation && (
+                  <div className="mt-10 sticker p-6" style={{ background: 'var(--color-blush)' }}>
+                    <div className="label mb-3" style={{ color: 'var(--color-orange)' }}>— Evaluación</div>
+                    <p className="serif-em text-[17px]" style={{ lineHeight: 1.65 }}>
+                      "{activePlan.evaluation}"
+                    </p>
+                  </div>
+                )}
+
+                {/* Reflection */}
+                {activePlan.reflection && (
+                  <div className="mt-6 sticker p-5" style={{ background: 'var(--color-sky)' }}>
+                    <div className="label mb-2" style={{ color: 'var(--color-mute)' }}>— Reflexión pedagógica</div>
+                    <p className="text-[14px] font-medium leading-relaxed" style={{ color: 'var(--color-plum)' }}>
+                      {activePlan.reflection}
+                    </p>
+                  </div>
+                )}
+
+                {/* Adaptations */}
+                {activePlan.adaptations && activePlan.adaptations.length > 0 && (
+                  <div className="mt-6">
+                    <div className="label mb-3" style={{ color: 'var(--color-mute)' }}>— Adaptaciones</div>
+                    <ul className="space-y-1">
+                      {activePlan.adaptations.map((a, i) => (
+                        <li key={i} className="flex items-baseline gap-2 text-[14px] font-medium" style={{ color: 'var(--color-mute)' }}>
+                          <span style={{ color: 'var(--color-orange)' }}>·</span>{a}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Homework */}
+                {activePlan.homework && (
+                  <div className="mt-6 sticker p-5" style={{ background: 'var(--color-lilac)' }}>
+                    <div className="label mb-2" style={{ color: 'var(--color-mute)' }}>— Tarea</div>
+                    <p className="text-[14px] font-medium leading-relaxed" style={{ color: 'var(--color-plum)' }}>
+                      {activePlan.homework}
+                    </p>
+                  </div>
+                )}
 
                 {/* Extra editable fields */}
                 <div className="mt-10 space-y-6" style={{ borderTop: '1.5px dashed oklch(0.24 0.06 340 / 0.3)', paddingTop: 32 }}>

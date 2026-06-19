@@ -55,6 +55,7 @@ export async function saveLessonPlan(plan: {
   methodology?: string;
   observations?: string;
   content: PlanIdea;
+  selected_sections?: string[] | null;
 }) {
   const { data, error } = await supabase
     .from('lesson_plans')
@@ -467,6 +468,11 @@ export async function createInviteCode(
 export async function deleteInstitution(institutionId: string) {
   const { error } = await supabase.rpc('delete_institution_cascade', { p_institution_id: institutionId });
   if (error) throw error;
+}
+
+// ── Feature Interest ───────────────────────────────────────────
+export async function saveFeatureInterest(userId: string, featureName: string): Promise<void> {
+  await supabase.from('feature_interest').insert({ user_id: userId, feature_name: featureName });
 }
 
 // ── Bug Reports ────────────────────────────────────────────────
