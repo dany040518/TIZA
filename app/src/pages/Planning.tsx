@@ -1,9 +1,5 @@
 import { Sparkles, X, BookmarkCheck, Check } from "lucide-react";
-<<<<<<< HEAD
-import { useState } from "react";
-=======
 import { useState, useEffect } from "react";
->>>>>>> 19b64bd (feat: B2C full audit — remove B2B dead code, redesign Classes, Class→Planning autofill)
 import { motion, AnimatePresence } from "motion/react";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
@@ -118,11 +114,7 @@ export default function Planning() {
         subject,
         grade,
         topic,
-<<<<<<< HEAD
-        content:         activePlan,
-=======
         content:        activePlan,
->>>>>>> 19b64bd (feat: B2C full audit — remove B2B dead code, redesign Classes, Class→Planning autofill)
         selected_sections: selectedSections,
         class_id:       selectedClassId || null,
       });
@@ -202,11 +194,7 @@ export default function Planning() {
 
               {/* Subject */}
               <div>
-<<<<<<< HEAD
-                <div className="label mb-2" style={{ color: 'var(--color-mute)' }}>Área</div>
-=======
                 <div className="label mb-2" style={{ color: 'var(--color-mute)' }}>Área (opcional)</div>
->>>>>>> 19b64bd (feat: B2C full audit — remove B2B dead code, redesign Classes, Class→Planning autofill)
                 <div className="flex flex-wrap gap-1.5 mt-2">
                   {subjects.map((s) => (
                     <button
