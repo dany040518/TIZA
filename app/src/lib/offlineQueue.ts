@@ -10,9 +10,6 @@
 export type OfflineActionType =
   | 'CREATE_CLASS'
   | 'UPDATE_CLASS'
-  | 'CREATE_STUDENT'
-  | 'ENROLL_STUDENT'
-  | 'UPSERT_ATTENDANCE'
   | 'SAVE_LESSON_PLAN';
 
 export interface OfflineAction {

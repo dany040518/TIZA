@@ -271,7 +271,7 @@ export default function Register() {
                   >
                     {DIAL_CODES.map((d) => (
                       <option key={`${d.code}-${d.name}`} value={d.code}>
-                        {d.flag} {d.code} {d.name}
+                        {d.flag} {d.code}
                       </option>
                     ))}
                   </select>

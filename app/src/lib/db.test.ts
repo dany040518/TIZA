@@ -9,7 +9,6 @@ import {
   saveLessonPlan,
   getLessonPlans,
   deleteLessonPlan,
-  submitLessonPlanForReview,
   getProfile,
 } from './db'
 
@@ -110,22 +109,6 @@ describe('deleteLessonPlan()', () => {
     }
     vi.mocked(supabase.from).mockReturnValue(chain)
     await expect(deleteLessonPlan('plan-1')).rejects.toThrow('No se pudo eliminar')
-  })
-})
-
-// ── submitLessonPlanForReview ──────────────────────────────────
-describe('submitLessonPlanForReview()', () => {
-  it('cambia el estado a pending_review', async () => {
-    const updated = { ...mockPlan, id: 'plan-1', status: 'pending_review' }
-    const chain: any = {
-      update: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-      select: vi.fn().mockReturnThis(),
-      single: vi.fn().mockResolvedValue({ data: updated, error: null }),
-    }
-    vi.mocked(supabase.from).mockReturnValue(chain)
-    const result = await submitLessonPlanForReview('plan-1')
-    expect(result.status).toBe('pending_review')
   })
 })
 

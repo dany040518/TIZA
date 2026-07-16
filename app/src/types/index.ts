@@ -1,6 +1,5 @@
-export type AppRole = 'teacher' | 'coordinator' | 'admin';
+export type AppRole = 'teacher' | 'admin';
 export type PlanStatus = 'draft_saved' | 'pending_review' | 'approved' | 'rejected';
-export type AttendanceStatus = 'present' | 'absent';
 export type InstitutionType = 'preescolar' | 'primaria' | 'secundaria' | 'universidad' | 'otro';
 
 // Days of week: 0=Sunday, 1=Monday … 6=Saturday
@@ -34,70 +33,35 @@ export interface Institution {
   created_at?: string;
 }
 
+export interface InviteCode {
+  id: string;
+  institution_id: string;
+  code: string;
+  role: 'teacher' | 'coordinator';
+  created_by?: string | null;
+  max_uses: number;
+  use_count: number;
+  expires_at?: string | null;
+  is_active: boolean;
+  created_at?: string;
+}
+
 export interface Class {
   id: string;
-  institution_id: string;
   teacher_id: string;
   name: string;
-  subject: string;
-  grade_level: string;
-  academic_period?: string;
-  description?: string;
+  subject?: string | null;
+  grade_level?: string | null;
+  academic_period?: string | null;
+  description?: string | null;
+  observations?: string | null;
+  color?: string | null;
+  estimated_students?: number | null;
+  has_special_needs?: boolean | null;
   is_archived?: boolean;
   days_of_week?: DayOfWeek[];
-  start_time?: string | null; // "HH:MM"
-  end_time?: string | null;   // "HH:MM"
-  schedule?: Record<string, unknown>;
-  created_at?: string;
-}
-
-export interface Student {
-  id: string;
-  institution_id: string;
-  teacher_id: string;
-  full_name: string;
-  student_code?: string;
-  email?: string;
-  guardian_name?: string;
-  guardian_phone?: string;
-  notes?: string;
-  is_active?: boolean;
-  created_at?: string;
-  updated_at?: string;
-}
-
-export interface ClassStudent {
-  id: string;
-  class_id: string;
-  student_id: string;
-  enrolled_at?: string;
-  created_at?: string;
-}
-
-export interface CsvStudentRow {
-  full_name: string;
-  student_code?: string;
-  email?: string;
-  guardian_name?: string;
-  guardian_phone?: string;
-}
-
-export interface ImportResult {
-  created: number;
-  enrolled: number;
-  skipped: number;
-  errors: string[];
-}
-
-export interface AttendanceEntry {
-  id: string;
-  institution_id: string;
-  class_id: string;
-  teacher_id: string;
-  student_id: string;
-  date: string;
-  status: AttendanceStatus;
-  task_id?: string;
+  start_time?: string | null;
+  end_time?: string | null;
   created_at?: string;
 }
 
@@ -170,49 +134,21 @@ export interface LessonPlan {
   id?: string;
   teacher_id: string;
   institution_id?: string | null;
-  // Plan-class relationship
   parent_plan_id?: string | null;
   class_id?: string | null;
-  // Core fields
   title: string;
   subject?: string;
   grade?: string;
   topic?: string;
-  // Extended editable fields
   objectives?: string | null;
   methodology?: string | null;
   observations?: string | null;
-  // AI-generated content blob
   content: PlanIdea;
   status: PlanStatus;
-  coordinator_comment?: string | null;
-  reviewed_by?: string | null;
-  reviewed_at?: string | null;
   selected_sections?: string[] | null;
   export_data?: Record<string, unknown> | null;
   created_at?: string;
   updated_at?: string;
-}
-
-export interface InviteCode {
-  id: string;
-  institution_id: string;
-  code: string;
-  role: 'teacher' | 'coordinator';
-  created_by?: string | null;
-  max_uses: number;
-  use_count: number;
-  expires_at?: string | null;
-  is_active: boolean;
-  created_at?: string;
-}
-
-export interface ValidateInviteCodeResult {
-  institution_id: string | null;
-  institution_name: string | null;
-  institution_type: string | null;
-  role: string | null;
-  is_valid: boolean;
 }
 
 export type BugCategory = 'ui' | 'funcionalidad' | 'datos' | 'rendimiento' | 'otro';
@@ -233,9 +169,9 @@ export interface BugReport {
 export interface WeeklyEvent {
   classId: string;
   className: string;
-  subject: string;
+  subject?: string | null;
   day: DayOfWeek;
-  startTime: string;  // "HH:MM"
-  endTime: string;    // "HH:MM"
+  startTime: string;
+  endTime: string;
   color: string;
 }

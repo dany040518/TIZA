@@ -8,10 +8,7 @@ import Dashboard from './pages/Dashboard';
 import Planning from './pages/Planning';
 import MyPlans from './pages/MyPlans';
 import Classes from './pages/Classes';
-import Students from './pages/Students';
-import Attendance from './pages/Attendance';
 import WeeklyView from './pages/WeeklyView';
-// TODO B2B: import CoordinatorDashboard from './_future-b2b/CoordinatorDashboard';
 import AdminDashboard from './pages/AdminDashboard';
 import Account from './pages/Account';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -43,17 +40,9 @@ export default function App() {
           <Route path="/classes" element={
             <ProtectedRoute role={['teacher']}><Classes /></ProtectedRoute>
           } />
-          <Route path="/classes/:classId/students" element={
-            <ProtectedRoute role={['teacher']}><Students /></ProtectedRoute>
-          } />
-          <Route path="/classes/:classId/attendance" element={
-            <ProtectedRoute role={['teacher']}><Attendance /></ProtectedRoute>
-          } />
           <Route path="/weekly" element={
             <ProtectedRoute role={['teacher']}><WeeklyView /></ProtectedRoute>
           } />
-
-          {/* TODO B2B: restaurar ruta /coordinator con CoordinatorDashboard */}
 
           {/* Admin routes */}
           <Route path="/admin" element={

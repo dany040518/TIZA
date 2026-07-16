@@ -25,5 +25,5 @@
     "noEmit": true
   },
   "include": ["src"],
-  "exclude": ["references", "node_modules", "dist"]
+  "exclude": ["references", "node_modules", "dist", "src/_future-b2b"]
 }

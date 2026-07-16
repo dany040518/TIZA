@@ -1,16 +1,12 @@
 import React, { useEffect, useState } from 'react';
-// TIZA - Funcionalidad pausada temporalmente. No eliminar.
-// import { Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { useProfile } from '@/hooks/useProfile';
 import { useToast } from '@/components/Toast';
 import {
   getClasses, createClass, updateClass, archiveClass, unarchiveClass, deleteClass,
 } from '@/lib/db';
 import type { Class, DayOfWeek } from '@/types';
 import DashboardLayout from '@/components/layouts/DashboardLayout';
-// TIZA - Users y CalendarCheck pausados con módulos Estudiantes/Asistencia. No eliminar.
-import { Loader2, Plus, Trash2, /* Users, CalendarCheck, */ Pencil, Archive, ArchiveRestore, Clock } from 'lucide-react';
+import { Loader2, Plus, Trash2, Pencil, Archive, ArchiveRestore, Clock } from 'lucide-react';
 import { Star } from '@/components/tiza/Mark';
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -35,6 +31,14 @@ const DAYS: { value: DayOfWeek; label: string }[] = [
 
 // ── Form state helper ─────────────────────────────────────────────────────────
 
+const CLASS_COLORS = [
+  { label: 'Rosa',    value: 'var(--color-blush)'  },
+  { label: 'Amarillo', value: 'var(--color-butter)' },
+  { label: 'Verde',   value: 'var(--color-mint)'   },
+  { label: 'Azul',    value: 'var(--color-sky)'    },
+  { label: 'Lila',    value: 'var(--color-lilac)'  },
+];
+
 function emptyForm() {
   return {
     name: '',
@@ -42,6 +46,10 @@ function emptyForm() {
     gradeLevel: '',
     academicPeriod: getCurrentPeriod(),
     description: '',
+    color: '',
+    estimatedStudents: '',
+    hasSpecialNeeds: false,
+    observations: '',
     days: [] as DayOfWeek[],
     startTime: '',
     endTime: '',
@@ -143,14 +151,64 @@ function ClassFormModal({
 
           </div>
 
-          {/* Description */}
+          {/* Color */}
           <div>
-            <div className="label mb-1" style={{ color: 'var(--color-mute)' }}>Descripción (opcional)</div>
+            <div className="label mb-1" style={{ color: 'var(--color-mute)' }}>Color (opcional)</div>
+            <div className="flex flex-wrap gap-2 mt-1">
+              {CLASS_COLORS.map((c) => (
+                <button
+                  key={c.value}
+                  type="button"
+                  onClick={() => setForm((f) => ({ ...f, color: f.color === c.value ? '' : c.value }))}
+                  title={c.label}
+                  style={{
+                    width: 28, height: 28, borderRadius: '50%',
+                    background: c.value,
+                    border: form.color === c.value ? '3px solid var(--color-plum)' : '2px solid oklch(0.24 0.06 340 / 0.3)',
+                    cursor: 'pointer',
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Estimated students + special needs */}
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <div className="label mb-1" style={{ color: 'var(--color-mute)' }}>Estudiantes aprox.</div>
+              <input
+                type="number"
+                min="1"
+                value={form.estimatedStudents}
+                onChange={(e) => setForm((f) => ({ ...f, estimatedStudents: e.target.value }))}
+                placeholder="30"
+                className={inp}
+                style={borderStyle}
+              />
+            </div>
+            <div className="flex items-end pb-2">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={form.hasSpecialNeeds}
+                  onChange={(e) => setForm((f) => ({ ...f, hasSpecialNeeds: e.target.checked }))}
+                  style={{ width: 16, height: 16, accentColor: 'var(--color-orange)' }}
+                />
+                <span className="text-[13px] font-medium" style={{ color: 'var(--color-plum)' }}>
+                  Necesidades especiales
+                </span>
+              </label>
+            </div>
+          </div>
+
+          {/* Observations */}
+          <div>
+            <div className="label mb-1" style={{ color: 'var(--color-mute)' }}>Observaciones (opcional)</div>
             <textarea
               rows={2}
-              value={form.description}
-              onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-              placeholder="Notas sobre el grupo, salón, etc."
+              value={form.observations}
+              onChange={(e) => setForm((f) => ({ ...f, observations: e.target.value }))}
+              placeholder="Notas sobre el grupo, dinámica, recursos…"
               className="w-full bg-transparent border rounded-xl p-3 text-[13px] resize-none focus:outline-none"
               style={{ borderColor: 'oklch(0.24 0.06 340 / 0.25)' }}
             />
@@ -252,7 +310,6 @@ function ClassFormModal({
 
 export default function Classes() {
   const { user }    = useAuth();
-  const { profile } = useProfile();
   const { success, error: toastError } = useToast();
 
   const [classes, setClasses]       = useState<Class[]>([]);
@@ -285,10 +342,14 @@ export default function Classes() {
   // ── Helpers ────────────────────────────────────────────────
   const formToFields = (f: FormState): Partial<Omit<Class, 'id' | 'created_at'>> => ({
     name: f.name,
-    subject: f.subject,
-    grade_level: f.gradeLevel,
+    subject: f.subject || null,
+    grade_level: f.gradeLevel || null,
     academic_period: f.academicPeriod || undefined,
-    description: f.description || undefined,
+    description: f.description || null,
+    color: f.color || null,
+    estimated_students: f.estimatedStudents ? Number(f.estimatedStudents) : null,
+    has_special_needs: f.hasSpecialNeeds,
+    observations: f.observations || null,
     days_of_week: f.days,
     start_time: f.startTime || null,
     end_time: f.endTime || null,
@@ -296,10 +357,14 @@ export default function Classes() {
 
   const classToForm = (c: Class): FormState => ({
     name: c.name,
-    subject: c.subject,
-    gradeLevel: c.grade_level,
+    subject: c.subject ?? '',
+    gradeLevel: c.grade_level ?? '',
     academicPeriod: c.academic_period ?? '',
     description: c.description ?? '',
+    color: c.color ?? '',
+    estimatedStudents: c.estimated_students != null ? String(c.estimated_students) : '',
+    hasSpecialNeeds: c.has_special_needs ?? false,
+    observations: c.observations ?? '',
     days: (c.days_of_week ?? []) as DayOfWeek[],
     startTime: c.start_time ?? '',
     endTime: c.end_time ?? '',
@@ -308,11 +373,10 @@ export default function Classes() {
   // ── Create ─────────────────────────────────────────────────
   const handleCreate = async (e: React.BaseSyntheticEvent) => {
     e.preventDefault();
-    if (!user || !profile?.institution_id) return;
+    if (!user) return;
     setSaving(true);
     try {
       const cls = await createClass({
-        institution_id: profile.institution_id,
         teacher_id: user.id,
         is_archived: false,
         ...formToFields(createForm),
@@ -442,7 +506,7 @@ export default function Classes() {
               {showArchived ? 'No hay clases archivadas.' : 'Aún no tienes clases registradas.'}
             </p>
             <p className="text-[13px] mt-1" style={{ color: 'var(--color-mute)' }}>
-              {!showArchived && 'Crea tu primera clase para gestionar estudiantes y asistencia.'}
+              {!showArchived && 'Crea tu primera clase para organizar tus planeaciones.'}
             </p>
           </div>
         )}
@@ -489,29 +553,6 @@ export default function Classes() {
 
                 {/* Actions */}
                 <div className="flex items-center gap-2 flex-wrap">
-                  {/* TIZA - Funcionalidad pausada temporalmente. No eliminar. */}
-                  {/* Los módulos Estudiantes y Asistencia están pausados.
-                      Para reactivar: descomentar el bloque a continuación. */}
-                  {/* {!cls.is_archived && (
-                    <>
-                      <Link
-                        to={`/classes/${cls.id}/students`}
-                        className="btn-chunky no-underline"
-                        style={{ padding: '7px 12px', fontSize: 12 }}
-                      >
-                        <Users size={13} />
-                        <span className="hidden sm:inline">Estudiantes</span>
-                      </Link>
-                      <Link
-                        to={`/classes/${cls.id}/attendance`}
-                        className="btn-chunky no-underline"
-                        style={{ padding: '7px 12px', fontSize: 12 }}
-                      >
-                        <CalendarCheck size={13} />
-                        <span className="hidden sm:inline">Asistencia</span>
-                      </Link>
-                    </>
-                  )} */}
                   <button
                     className="btn-chunky"
                     style={{ padding: '7px 10px', fontSize: 12 }}

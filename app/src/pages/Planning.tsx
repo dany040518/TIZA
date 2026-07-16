@@ -1,14 +1,18 @@
 import { Sparkles, X, BookmarkCheck, Check } from "lucide-react";
+<<<<<<< HEAD
 import { useState } from "react";
+=======
+import { useState, useEffect } from "react";
+>>>>>>> 19b64bd (feat: B2C full audit — remove B2B dead code, redesign Classes, Class→Planning autofill)
 import { motion, AnimatePresence } from "motion/react";
 import { useAuth } from "@/hooks/useAuth";
 import { useProfile } from "@/hooks/useProfile";
-import { saveLessonPlan } from "@/lib/db";
+import { saveLessonPlan, getClasses } from "@/lib/db";
 import { generateLessonPlan } from "@/services/aiService";
 import DashboardLayout from "../components/layouts/DashboardLayout";
 import { Star, Squiggle } from "@/components/tiza/Mark";
 import { useToast } from "@/components/Toast";
-import type { PlanIdea } from "@/types";
+import type { PlanIdea, Class } from "@/types";
 import type { SectionKey } from "@/types";
 import { SECTION_LABELS, SECTION_PRESETS, MANDATORY_SECTIONS } from "@/types";
 
@@ -30,6 +34,28 @@ export default function Planning() {
   const { user } = useAuth();
   const { profile } = useProfile();
   const { error: toastError, success: toastSuccess } = useToast();
+
+  const [classes, setClasses]       = useState<Class[]>([]);
+  const [selectedClassId, setSelectedClassId] = useState<string>("");
+
+  useEffect(() => {
+    if (!user) return;
+    getClasses(user.id).then(setClasses).catch(() => {});
+  }, [user]);
+
+  const handleClassSelect = (classId: string) => {
+    setSelectedClassId(classId);
+    if (!classId) return;
+    const cls = classes.find((c) => c.id === classId);
+    if (!cls) return;
+    if (cls.subject) setSubject(cls.subject);
+    if (cls.grade_level) setGrade(cls.grade_level);
+    const parts: string[] = [];
+    if (cls.estimated_students) parts.push(`~${cls.estimated_students} estudiantes`);
+    if (cls.has_special_needs) parts.push("hay estudiantes con necesidades especiales");
+    if (cls.observations) parts.push(cls.observations);
+    if (parts.length) setContext(parts.join(". "));
+  };
 
   const [topic, setTopic]           = useState("");
   const [subject, setSubject]       = useState("");
@@ -92,8 +118,13 @@ export default function Planning() {
         subject,
         grade,
         topic,
+<<<<<<< HEAD
         content:         activePlan,
+=======
+        content:        activePlan,
+>>>>>>> 19b64bd (feat: B2C full audit — remove B2B dead code, redesign Classes, Class→Planning autofill)
         selected_sections: selectedSections,
+        class_id:       selectedClassId || null,
       });
       setSaved(true);
       toastSuccess('Planeación guardada correctamente.');
@@ -134,6 +165,24 @@ export default function Planning() {
           <div>
             <div className="sticker sticker-lg notebook p-5 sm:p-7 space-y-5 sm:space-y-6 sm:sticky sm:top-4">
 
+              {/* Class selector */}
+              {classes.length > 0 && (
+                <div>
+                  <div className="label mb-2" style={{ color: 'var(--color-mute)' }}>Clase (opcional)</div>
+                  <select
+                    value={selectedClassId}
+                    onChange={(e) => handleClassSelect(e.target.value)}
+                    className="w-full bg-transparent border-0 border-b py-2 text-[14px] font-medium focus:outline-none"
+                    style={{ borderColor: 'oklch(0.24 0.06 340 / 0.3)', color: 'var(--color-plum)' }}
+                  >
+                    <option value="">— Sin clase vinculada</option>
+                    {classes.map((c) => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
               {/* Topic */}
               <div>
                 <div className="label mb-2" style={{ color: 'var(--color-mute)' }}>Tema principal</div>
@@ -153,7 +202,11 @@ export default function Planning() {
 
               {/* Subject */}
               <div>
+<<<<<<< HEAD
                 <div className="label mb-2" style={{ color: 'var(--color-mute)' }}>Área</div>
+=======
+                <div className="label mb-2" style={{ color: 'var(--color-mute)' }}>Área (opcional)</div>
+>>>>>>> 19b64bd (feat: B2C full audit — remove B2B dead code, redesign Classes, Class→Planning autofill)
                 <div className="flex flex-wrap gap-1.5 mt-2">
                   {subjects.map((s) => (
                     <button
@@ -284,7 +337,7 @@ export default function Planning() {
 
               <button
                 onClick={handleGenerate}
-                disabled={loading || !topic.trim()}
+                disabled={loading || !topic.trim() || !grade}
                 className="btn-chunky btn-chunky-primary w-full justify-center"
               >
                 {loading ? (
