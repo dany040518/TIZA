@@ -53,19 +53,33 @@ function minutesToPx(minutes: number, pxPerHour = 64): number {
 function buildWeeklyEvents(classes: Class[]): WeeklyEvent[] {
   const events: WeeklyEvent[] = [];
   classes.forEach((cls, idx) => {
-    if (!cls.days_of_week?.length || !cls.start_time || !cls.end_time) return;
     const color = CLASS_COLORS[idx % CLASS_COLORS.length];
-    cls.days_of_week.forEach((day) => {
-      events.push({
-        classId:   cls.id,
-        className: cls.name,
-        subject:   cls.subject,
-        day:       day as DayOfWeek,
-        startTime: cls.start_time!,
-        endTime:   cls.end_time!,
-        color,
+    if (cls.schedule?.length) {
+      cls.schedule.forEach((s) => {
+        if (!s.start_time || !s.end_time) return;
+        events.push({
+          classId:   cls.id,
+          className: cls.name,
+          subject:   cls.subject,
+          day:       s.day,
+          startTime: s.start_time,
+          endTime:   s.end_time,
+          color,
+        });
       });
-    });
+    } else if (cls.days_of_week?.length && cls.start_time && cls.end_time) {
+      cls.days_of_week.forEach((day) => {
+        events.push({
+          classId:   cls.id,
+          className: cls.name,
+          subject:   cls.subject,
+          day:       day as DayOfWeek,
+          startTime: cls.start_time!,
+          endTime:   cls.end_time!,
+          color,
+        });
+      });
+    }
   });
   return events;
 }
@@ -110,7 +124,7 @@ export default function WeeklyView() {
   }
 
   const hasSchedule = classes.some(
-    (c) => c.days_of_week?.length && c.start_time && c.end_time,
+    (c) => c.schedule?.length || (c.days_of_week?.length && c.start_time && c.end_time),
   );
 
   return (
@@ -325,7 +339,7 @@ export default function WeeklyView() {
         {!loading && hasSchedule && (
           <div className="mt-4 flex flex-wrap gap-2">
             {classes
-              .filter((c) => c.days_of_week?.length && c.start_time)
+              .filter((c) => c.schedule?.length || (c.days_of_week?.length && c.start_time))
               .map((cls, idx) => (
                 <div
                   key={cls.id}

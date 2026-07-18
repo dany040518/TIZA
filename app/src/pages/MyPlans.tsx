@@ -137,7 +137,7 @@ function downloadPlanPDF(plan: LessonPlan, linkedClass?: Class) {
       </div>`).join('')}
     </div>` : ''}
 
-    ${c.materials?.length > 0 ? `
+    ${c.materials && c.materials.length > 0 ? `
     <!-- Materiales -->
     <div style="margin-bottom:20px;">
       <div style="font-family:Arial,sans-serif;font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#888;margin-bottom:8px;">Materiales</div>
@@ -501,23 +501,27 @@ function PlanCard({
         {/* Expanded detail */}
         {expanded && (
           <div className="mt-4 pt-4 space-y-3" style={{ borderTop: '1px solid oklch(0.24 0.06 340 / 0.12)' }}>
-            {plan.objectives && (
+            {plan.content.objective && (
               <div>
-                <div className="label mb-1" style={{ color: 'var(--color-mute)' }}>Objetivos</div>
-                <p className="text-[13px] font-medium leading-relaxed" style={{ color: 'var(--color-plum)' }}>{plan.objectives}</p>
+                <div className="label mb-1" style={{ color: 'var(--color-mute)' }}>Objetivo general</div>
+                <p className="text-[13px] font-medium leading-relaxed" style={{ color: 'var(--color-plum)' }}>{plan.content.objective}</p>
+              </div>
+            )}
+            {(plan.content.specific_objectives ?? []).length > 0 && (
+              <div>
+                <div className="label mb-1" style={{ color: 'var(--color-mute)' }}>Objetivos específicos</div>
+                <ul className="space-y-0.5 pl-4" style={{ listStyleType: 'disc' }}>
+                  {plan.content.specific_objectives!.map((o, i) => (
+                    <li key={i} className="text-[13px] font-medium leading-relaxed" style={{ color: 'var(--color-plum)' }}>{o}</li>
+                  ))}
+                </ul>
               </div>
             )}
             <div>
               <div className="label mb-1" style={{ color: 'var(--color-mute)' }}>Descripción</div>
               <p className="text-[13px] font-medium leading-relaxed" style={{ color: 'var(--color-plum)' }}>{plan.content.description}</p>
             </div>
-            {plan.methodology && (
-              <div>
-                <div className="label mb-1" style={{ color: 'var(--color-mute)' }}>Metodología</div>
-                <p className="text-[13px] font-medium leading-relaxed" style={{ color: 'var(--color-plum)' }}>{plan.methodology}</p>
-              </div>
-            )}
-            {plan.content.materials?.length > 0 && (
+            {plan.content.materials && plan.content.materials.length > 0 && (
               <div>
                 <div className="label mb-1" style={{ color: 'var(--color-mute)' }}>Materiales</div>
                 <div className="flex flex-wrap gap-1.5">
@@ -527,10 +531,66 @@ function PlanCard({
                 </div>
               </div>
             )}
-            <div>
-              <div className="label mb-1" style={{ color: 'var(--color-mute)' }}>Evaluación</div>
-              <p className="text-[13px] font-medium italic leading-relaxed" style={{ color: 'var(--color-plum)' }}>"{plan.content.evaluation}"</p>
-            </div>
+            {(plan.content.sequence ?? []).length > 0 && (
+              <div>
+                <div className="label mb-2" style={{ color: 'var(--color-mute)' }}>Secuencia didáctica</div>
+                <div className="space-y-2">
+                  {plan.content.sequence!.map((phase, i) => (
+                    <div
+                      key={i}
+                      className="sticker p-3"
+                      style={{ background: i === 0 ? 'var(--color-blush)' : i === 1 ? 'var(--color-butter)' : 'var(--color-mint)' }}
+                    >
+                      <div className="flex items-baseline gap-2 mb-1">
+                        <span className="font-bold text-[12px]" style={{ color: 'var(--color-plum)' }}>{phase.phase}</span>
+                        <span className="text-[11px]" style={{ color: 'var(--color-mute)' }}>{phase.duration} min</span>
+                      </div>
+                      <p className="text-[12px] leading-relaxed m-0" style={{ color: 'var(--color-plum)' }}>{phase.description}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {plan.content.evaluation && (
+              <div>
+                <div className="label mb-1" style={{ color: 'var(--color-mute)' }}>Evaluación</div>
+                <p className="text-[13px] font-medium italic leading-relaxed" style={{ color: 'var(--color-plum)' }}>"{plan.content.evaluation}"</p>
+              </div>
+            )}
+            {plan.content.reflection && (
+              <div>
+                <div className="label mb-1" style={{ color: 'var(--color-mute)' }}>Reflexión pedagógica</div>
+                <p className="text-[13px] font-medium leading-relaxed" style={{ color: 'var(--color-mute)' }}>{plan.content.reflection}</p>
+              </div>
+            )}
+            {(plan.content.adaptations ?? []).length > 0 && (
+              <div>
+                <div className="label mb-1" style={{ color: 'var(--color-mute)' }}>Adaptaciones especiales</div>
+                <ul className="space-y-0.5 pl-4" style={{ listStyleType: 'disc' }}>
+                  {plan.content.adaptations!.map((a, i) => (
+                    <li key={i} className="text-[13px] font-medium leading-relaxed" style={{ color: 'var(--color-plum)' }}>{a}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+            {plan.content.homework && (
+              <div>
+                <div className="label mb-1" style={{ color: 'var(--color-mute)' }}>Tarea / trabajo en casa</div>
+                <p className="text-[13px] font-medium leading-relaxed" style={{ color: 'var(--color-plum)' }}>{plan.content.homework}</p>
+              </div>
+            )}
+            {plan.objectives && !plan.content.objective && (
+              <div>
+                <div className="label mb-1" style={{ color: 'var(--color-mute)' }}>Objetivos</div>
+                <p className="text-[13px] font-medium leading-relaxed" style={{ color: 'var(--color-plum)' }}>{plan.objectives}</p>
+              </div>
+            )}
+            {plan.methodology && (
+              <div>
+                <div className="label mb-1" style={{ color: 'var(--color-mute)' }}>Metodología</div>
+                <p className="text-[13px] font-medium leading-relaxed" style={{ color: 'var(--color-plum)' }}>{plan.methodology}</p>
+              </div>
+            )}
             {plan.observations && (
               <div>
                 <div className="label mb-1" style={{ color: 'var(--color-mute)' }}>Observaciones</div>

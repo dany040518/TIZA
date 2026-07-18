@@ -160,7 +160,7 @@ function buildPrompt({
     ? selected_sections
     : allSections;
 
-  const sectionInstructions = buildSectionInstructions(sections);
+  const sectionInstructions = buildSectionInstructions(sections, grade, context);
 
   return `You are an expert instructional designer helping a teacher create complete, practical lesson plans.
 
@@ -207,7 +207,10 @@ Return ONLY valid JSON:
 }`;
 }
 
-function buildSectionInstructions(sections: string[]): string {
+function buildSectionInstructions(sections: string[], grade: string, context: string): string {
+  const gradeRef = grade || "the indicated grade level";
+  const hasContext = context?.trim().length > 0;
+
   const map: Record<string, string> = {
     objective: "- objective: what students will learn (1 sentence, clear and measurable)",
     specific_objectives: "- specific_objectives: array of 2-3 specific learning objectives",
@@ -216,10 +219,10 @@ function buildSectionInstructions(sections: string[]): string {
     [ { "phase": "Opening",     "description": "...", "duration": number },
       { "phase": "Development", "description": "...", "duration": number },
       { "phase": "Closing",     "description": "...", "duration": number } ]`,
-    evaluation: "- evaluation: how the teacher checks learning (practical, not abstract)",
+    evaluation: `- evaluation: how the teacher checks learning — must be proportional to ${gradeRef}: for Preescolar use simple observation or oral questions; for Primaria use brief written exercises or group demonstrations; for Secundaria use quizzes, oral presentations, or rubric-based tasks; for Universidad use analysis, projects, or oral defense. Be concrete, not abstract.${hasContext ? " Consider any special needs or group characteristics mentioned in the classroom context." : ""}`,
     reflection: "- reflection: pedagogical reflection / closing thoughts for the teacher (2-3 sentences)",
     adaptations: "- adaptations: array of adjustments for students with special needs",
-    homework: "- homework: take-home task or assignment description",
+    homework: `- homework: take-home task appropriate for ${gradeRef}. Preescolar: brief playful activity (≤15 min) with family involvement. Primaria: guided practice or short reading (≤20 min). Secundaria: autonomous task or short research (≤30 min). Universidad: project, essay, or problem set. Keep it manageable and purposeful.`,
   };
 
   return sections

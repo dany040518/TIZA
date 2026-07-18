@@ -7,8 +7,6 @@ import { Star, Squiggle } from '@/components/tiza/Mark';
 import { getLessonPlans, getClasses } from '@/lib/db';
 import type { LessonPlan, Class, DayOfWeek } from '@/types';
 import { Loader2, BookOpen, AlertCircle, CheckCircle2 } from 'lucide-react';
-import { saveFeatureInterest } from '@/lib/db';
-
 // ── Active tasks — only Planning focus (Attendance paused) ──────────────────
 
 const ACTIVE_TASKS = [
@@ -125,11 +123,6 @@ function buildReminders(plans: LessonPlan[], classes: Class[]): Reminder[] {
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-const ROADMAP_FEATURES = [
-  { key: 'seguimiento', label: 'Seguimiento de asistencia', bg: 'var(--color-butter)' },
-  { key: 'informes',    label: 'Informes y reportes',       bg: 'var(--color-sky)'    },
-] as const;
-
 export default function Dashboard() {
   const { user, displayName } = useAuth();
   const firstName = displayName?.split(' ')[0] ?? 'Docente';
@@ -139,8 +132,6 @@ export default function Dashboard() {
   const [plans,    setPlans]    = useState<LessonPlan[]>([]);
   const [classes,  setClasses]  = useState<Class[]>([]);
   const [loading,  setLoading]  = useState(true);
-  const [notified, setNotified] = useState<Set<string>>(new Set());
-
   useEffect(() => {
     if (!user) return;
     Promise.all([
@@ -154,12 +145,6 @@ export default function Dashboard() {
   }, [user]);
 
   const reminders = loading ? [] : buildReminders(plans, classes);
-
-  const handleNotify = async (featureKey: string) => {
-    if (!user || notified.has(featureKey)) return;
-    await saveFeatureInterest(user.id, featureKey);
-    setNotified((prev) => new Set(prev).add(featureKey));
-  };
 
   return (
     <DashboardLayout>
@@ -194,39 +179,6 @@ export default function Dashboard() {
               <span className="chip" style={{ background: 'var(--color-blush)' }}>planeación IA</span>
             </div>
 
-            {/* Roadmap — próximas funciones */}
-            <div className="mt-5 pt-5" style={{ borderTop: '1.5px dashed oklch(0.24 0.06 340 / 0.18)' }}>
-              <div className="label mb-3" style={{ color: 'var(--color-mute)' }}>en camino →</div>
-              <div className="flex flex-col sm:flex-row gap-2">
-                {ROADMAP_FEATURES.map((f) => {
-                  const done = notified.has(f.key);
-                  return (
-                    <button
-                      key={f.key}
-                      type="button"
-                      onClick={() => handleNotify(f.key)}
-                      disabled={done}
-                      className="sticker flex items-center gap-2 px-4 py-2.5 text-left transition-all"
-                      style={{
-                        background: done ? 'var(--color-mint)' : f.bg,
-                        boxShadow: '2px 2px 0 var(--color-plum)',
-                        cursor: done ? 'default' : 'pointer',
-                        border: '2px solid var(--color-plum)',
-                        fontSize: 12,
-                        fontWeight: 700,
-                        color: 'var(--color-plum)',
-                      }}
-                    >
-                      <span>{done ? '✓' : '🔔'}</span>
-                      <span>{f.label}</span>
-                      <span style={{ color: 'var(--color-mute)', fontWeight: 400, marginLeft: 'auto' }}>
-                        {done ? '¡Anotado!' : 'Avísame'}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
           </motion.div>
 
           {/* Tilted task cards */}

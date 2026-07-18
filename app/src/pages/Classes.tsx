@@ -39,6 +39,8 @@ const CLASS_COLORS = [
   { label: 'Lila',    value: 'var(--color-lilac)'  },
 ];
 
+type ScheduleEntry = { day: DayOfWeek; start_time: string; end_time: string };
+
 function emptyForm() {
   return {
     name: '',
@@ -49,10 +51,8 @@ function emptyForm() {
     color: '',
     estimatedStudents: '',
     hasSpecialNeeds: false,
-    observations: '',
-    days: [] as DayOfWeek[],
-    startTime: '',
-    endTime: '',
+    specialNeedsDescription: '',
+    schedule: [] as ScheduleEntry[],
   };
 }
 
@@ -79,9 +79,21 @@ function ClassFormModal({
   const borderStyle = { borderColor: 'oklch(0.24 0.06 340 / 0.3)' };
 
   const toggleDay = (day: DayOfWeek) => {
+    setForm((f) => {
+      const exists = f.schedule.find((s) => s.day === day);
+      if (exists) return { ...f, schedule: f.schedule.filter((s) => s.day !== day) };
+      const entry: ScheduleEntry = { day, start_time: '', end_time: '' };
+      const sorted = [...f.schedule, entry].sort(
+        (a, b) => DAYS.findIndex((d) => d.value === a.day) - DAYS.findIndex((d) => d.value === b.day),
+      );
+      return { ...f, schedule: sorted };
+    });
+  };
+
+  const updateScheduleTime = (day: DayOfWeek, field: 'start_time' | 'end_time', value: string) => {
     setForm((f) => ({
       ...f,
-      days: f.days.includes(day) ? f.days.filter((d) => d !== day) : [...f.days, day],
+      schedule: f.schedule.map((s) => s.day === day ? { ...s, [field]: value } : s),
     }));
   };
 
@@ -197,22 +209,34 @@ function ClassFormModal({
                 <span className="text-[13px] font-medium" style={{ color: 'var(--color-plum)' }}>
                   Necesidades especiales
                 </span>
+                <span
+                  title="Incluye: discapacidades físicas o cognitivas, trastornos de aprendizaje (dislexia, TDAH), barreras de idioma o condiciones médicas que afecten el aprendizaje de algunos estudiantes."
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                    width: 15, height: 15, borderRadius: '50%',
+                    background: 'oklch(0.24 0.06 340 / 0.2)',
+                    fontSize: 10, fontWeight: 700,
+                    color: 'var(--color-plum)', cursor: 'help', flexShrink: 0,
+                  }}
+                >?</span>
               </label>
             </div>
           </div>
 
-          {/* Observations */}
-          <div>
-            <div className="label mb-1" style={{ color: 'var(--color-mute)' }}>Observaciones (opcional)</div>
-            <textarea
-              rows={2}
-              value={form.observations}
-              onChange={(e) => setForm((f) => ({ ...f, observations: e.target.value }))}
-              placeholder="Notas sobre el grupo, dinámica, recursos…"
-              className="w-full bg-transparent border rounded-xl p-3 text-[13px] resize-none focus:outline-none"
-              style={{ borderColor: 'oklch(0.24 0.06 340 / 0.25)' }}
-            />
-          </div>
+          {/* Conditional special needs description */}
+          {form.hasSpecialNeeds && (
+            <div>
+              <div className="label mb-1" style={{ color: 'var(--color-mute)' }}>Describe las necesidades especiales</div>
+              <textarea
+                rows={3}
+                value={form.specialNeedsDescription}
+                onChange={(e) => setForm((f) => ({ ...f, specialNeedsDescription: e.target.value }))}
+                placeholder="Ej: 2 estudiantes con dislexia, 1 con TDAH que requiere pausas activas cada 15 min, 1 con baja visión que necesita materiales ampliados."
+                className="w-full bg-transparent border rounded-xl p-3 text-[13px] resize-none focus:outline-none"
+                style={{ borderColor: 'oklch(0.24 0.06 340 / 0.25)' }}
+              />
+            </div>
+          )}
 
           {/* Schedule */}
           <div
@@ -228,56 +252,60 @@ function ClassFormModal({
             <div>
               <div className="label mb-2" style={{ color: 'var(--color-mute)' }}>Días</div>
               <div className="flex flex-wrap gap-1.5">
-                {DAYS.map((d) => (
-                  <button
-                    key={d.value}
-                    type="button"
-                    onClick={() => toggleDay(d.value)}
-                    className="chip transition-all"
-                    style={{
-                      fontSize: 12,
-                      padding: '4px 10px',
-                      background: form.days.includes(d.value)
-                        ? 'var(--color-orange)'
-                        : 'var(--color-paper)',
-                      borderColor: form.days.includes(d.value)
-                        ? 'var(--color-plum)'
-                        : 'oklch(0.24 0.06 340 / 0.3)',
-                      color: form.days.includes(d.value)
-                        ? 'var(--color-paper)'
-                        : 'var(--color-plum)',
-                      fontWeight: form.days.includes(d.value) ? 700 : 500,
-                    }}
-                  >
-                    {d.label}
-                  </button>
-                ))}
+                {DAYS.map((d) => {
+                  const selected = form.schedule.some((s) => s.day === d.value);
+                  return (
+                    <button
+                      key={d.value}
+                      type="button"
+                      onClick={() => toggleDay(d.value)}
+                      className="chip transition-all"
+                      style={{
+                        fontSize: 12,
+                        padding: '4px 10px',
+                        background: selected ? 'var(--color-orange)' : 'var(--color-paper)',
+                        borderColor: selected ? 'var(--color-plum)' : 'oklch(0.24 0.06 340 / 0.3)',
+                        color: selected ? 'var(--color-paper)' : 'var(--color-plum)',
+                        fontWeight: selected ? 700 : 500,
+                      }}
+                    >
+                      {d.label}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
-            {/* Times */}
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <div className="label mb-1" style={{ color: 'var(--color-mute)' }}>Inicio</div>
-                <input
-                  type="time"
-                  value={form.startTime}
-                  onChange={(e) => setForm((f) => ({ ...f, startTime: e.target.value }))}
-                  className="w-full bg-transparent border-0 border-b py-1.5 text-[14px] focus:outline-none"
-                  style={borderStyle}
-                />
+            {/* Per-day time inputs */}
+            {form.schedule.length > 0 && (
+              <div className="space-y-2">
+                {form.schedule.map((s) => {
+                  const dayLabel = DAYS.find((d) => d.value === s.day)?.label ?? '';
+                  return (
+                    <div key={s.day} className="flex items-center gap-3">
+                      <span className="text-[12px] font-bold w-8 shrink-0" style={{ color: 'var(--color-orange)' }}>
+                        {dayLabel}
+                      </span>
+                      <input
+                        type="time"
+                        value={s.start_time}
+                        onChange={(e) => updateScheduleTime(s.day, 'start_time', e.target.value)}
+                        className="flex-1 bg-transparent border-0 border-b py-1 text-[13px] focus:outline-none"
+                        style={borderStyle}
+                      />
+                      <span className="text-[12px]" style={{ color: 'var(--color-mute)' }}>→</span>
+                      <input
+                        type="time"
+                        value={s.end_time}
+                        onChange={(e) => updateScheduleTime(s.day, 'end_time', e.target.value)}
+                        className="flex-1 bg-transparent border-0 border-b py-1 text-[13px] focus:outline-none"
+                        style={borderStyle}
+                      />
+                    </div>
+                  );
+                })}
               </div>
-              <div>
-                <div className="label mb-1" style={{ color: 'var(--color-mute)' }}>Fin</div>
-                <input
-                  type="time"
-                  value={form.endTime}
-                  onChange={(e) => setForm((f) => ({ ...f, endTime: e.target.value }))}
-                  className="w-full bg-transparent border-0 border-b py-1.5 text-[14px] focus:outline-none"
-                  style={borderStyle}
-                />
-              </div>
-            </div>
+            )}
           </div>
 
           {/* Actions */}
@@ -349,26 +377,32 @@ export default function Classes() {
     color: f.color || null,
     estimated_students: f.estimatedStudents ? Number(f.estimatedStudents) : null,
     has_special_needs: f.hasSpecialNeeds,
-    observations: f.observations || null,
-    days_of_week: f.days,
-    start_time: f.startTime || null,
-    end_time: f.endTime || null,
+    observations: f.hasSpecialNeeds ? (f.specialNeedsDescription || null) : null,
+    days_of_week: f.schedule.map((s) => s.day),
+    schedule: f.schedule.length > 0 ? f.schedule : null,
+    start_time: f.schedule[0]?.start_time || null,
+    end_time: f.schedule[0]?.end_time || null,
   });
 
-  const classToForm = (c: Class): FormState => ({
-    name: c.name,
-    subject: c.subject ?? '',
-    gradeLevel: c.grade_level ?? '',
-    academicPeriod: c.academic_period ?? '',
-    description: c.description ?? '',
-    color: c.color ?? '',
-    estimatedStudents: c.estimated_students != null ? String(c.estimated_students) : '',
-    hasSpecialNeeds: c.has_special_needs ?? false,
-    observations: c.observations ?? '',
-    days: (c.days_of_week ?? []) as DayOfWeek[],
-    startTime: c.start_time ?? '',
-    endTime: c.end_time ?? '',
-  });
+  const classToForm = (c: Class): FormState => {
+    const schedule: ScheduleEntry[] = c.schedule?.length
+      ? c.schedule
+      : c.days_of_week?.length && c.start_time && c.end_time
+        ? (c.days_of_week as DayOfWeek[]).map((day) => ({ day, start_time: c.start_time!, end_time: c.end_time! }))
+        : [];
+    return {
+      name: c.name,
+      subject: c.subject ?? '',
+      gradeLevel: c.grade_level ?? '',
+      academicPeriod: c.academic_period ?? '',
+      description: c.description ?? '',
+      color: c.color ?? '',
+      estimatedStudents: c.estimated_students != null ? String(c.estimated_students) : '',
+      hasSpecialNeeds: c.has_special_needs ?? false,
+      specialNeedsDescription: c.has_special_needs ? (c.observations ?? '') : '',
+      schedule,
+    };
+  };
 
   // ── Create ─────────────────────────────────────────────────
   const handleCreate = async (e: React.BaseSyntheticEvent) => {
@@ -541,14 +575,25 @@ export default function Classes() {
                       {cls.description}
                     </div>
                   )}
-                  {cls.start_time && cls.end_time && (
+                  {cls.schedule?.length ? (
+                    <div className="mt-1.5 space-y-0.5">
+                      {cls.schedule.map((s) => (
+                        <div key={s.day} className="flex items-center gap-1.5">
+                          <Clock size={11} style={{ color: 'var(--color-orange)' }} />
+                          <span className="text-[12px] font-semibold" style={{ color: 'var(--color-mute)' }}>
+                            {DAYS.find((d) => d.value === s.day)?.label} · {s.start_time} – {s.end_time}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : cls.start_time && cls.end_time ? (
                     <div className="flex items-center gap-1 mt-1.5">
                       <Clock size={11} style={{ color: 'var(--color-orange)' }} />
                       <span className="text-[12px] font-semibold" style={{ color: 'var(--color-mute)' }}>
                         {dayAbbr(cls.days_of_week as DayOfWeek[])} · {cls.start_time} – {cls.end_time}
                       </span>
                     </div>
-                  )}
+                  ) : null}
                 </div>
 
                 {/* Actions */}

@@ -62,6 +62,7 @@ export interface Class {
   days_of_week?: DayOfWeek[];
   start_time?: string | null;
   end_time?: string | null;
+  schedule?: { day: DayOfWeek; start_time: string; end_time: string }[] | null;
   created_at?: string;
 }
 
