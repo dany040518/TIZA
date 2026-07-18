@@ -40,7 +40,6 @@ export async function updateAppUser(
 // ── Lesson Plans ───────────────────────────────────────────────
 export async function saveLessonPlan(plan: {
   teacher_id: string;
-  institution_id?: string | null;
   title: string;
   subject?: string;
   grade?: string;

@@ -2,7 +2,6 @@ import { Sparkles, X, BookmarkCheck, Check } from "lucide-react";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { useAuth } from "@/hooks/useAuth";
-import { useProfile } from "@/hooks/useProfile";
 import { saveLessonPlan, getClasses } from "@/lib/db";
 import { generateLessonPlan } from "@/services/aiService";
 import DashboardLayout from "../components/layouts/DashboardLayout";
@@ -28,7 +27,6 @@ const ideaColors = [
 
 export default function Planning() {
   const { user } = useAuth();
-  const { profile } = useProfile();
   const { error: toastError, success: toastSuccess } = useToast();
 
   const [classes, setClasses]       = useState<Class[]>([]);
@@ -108,9 +106,8 @@ export default function Planning() {
     setSaving(true);
     try {
       await saveLessonPlan({
-        teacher_id:     user.id,
-        institution_id: profile?.institution_id ?? null,
-        title:          activePlan.title,
+        teacher_id: user.id,
+        title:      activePlan.title,
         subject,
         grade,
         topic,

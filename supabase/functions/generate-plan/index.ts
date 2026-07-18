@@ -101,7 +101,7 @@ async function callAI(params: {
       model:       MODEL,
       messages:    [{ role: "user", content: buildPrompt(params) }],
       temperature: 0.7,
-      max_tokens:  2500,
+      max_tokens:  6000,
     }),
   });
 
@@ -162,7 +162,7 @@ function buildPrompt({
 
   const sectionInstructions = buildSectionInstructions(sections, grade, context);
 
-  return `You are an expert instructional designer helping a teacher create complete, practical lesson plans.
+  return `You are an expert instructional designer helping a teacher create complete, detailed, ready-to-use lesson plans.
 
 Your goal is to generate 3 VERY DIFFERENT lesson plans based on:
 
@@ -176,21 +176,26 @@ Each lesson must use a DIFFERENT teaching approach:
 2. Collaborative / discussion 💬
 3. Experiential / hands-on 🧪
 
-Each lesson plan must be REALISTIC and ready to use in a classroom.
-Avoid generic explanations. Be concrete and practical.
+CRITICAL QUALITY REQUIREMENT — EXTREMELY DETAILED PLANS:
+Each plan must be so detailed that a substitute teacher with no prior knowledge could execute it perfectly.
+- NEVER write vague phrases like "students explore the topic", "teacher introduces the concept", "students work in groups"
+- ALWAYS write EXACTLY what the teacher says or writes, EXACTLY what students do step by step
+- Phase descriptions must be 6–10 sentences minimum
+- Include minute-by-minute time breakdown within each phase
+- Specify exact questions the teacher asks, exact activities, exact transitions between activities
+- If it's a game, explain EXACT rules. If it's a discussion, write the EXACT questions. If it's an experiment, write EXACT steps.
 
 For EACH lesson, generate ONLY the following fields:
 - title: engaging and clear
-- type: (Gamified, Debate, Experimental, etc.)
-- description: short explanation of the class (2–3 sentences)
+- type: (Gamificada, Debate, Experimental, etc.)
+- description: 4–5 sentences summarizing the class approach, the core activity, and what makes it unique
 - duration: total class time in minutes
 ${sectionInstructions}
 
 IMPORTANT:
-- Make each idea VERY different
-- Use natural teacher-friendly language
-- Be specific (no vague phrases like "students understand")
-- Keep it concise but actionable
+- Make each idea VERY different in methodology and structure
+- Use natural teacher-friendly language in Spanish
+- Be extremely specific and actionable — no vague phrases
 - Give me the whole answer in Spanish
 - ONLY include the sections listed above — do not add extra fields
 
@@ -215,10 +220,16 @@ function buildSectionInstructions(sections: string[], grade: string, context: st
     objective: "- objective: what students will learn (1 sentence, clear and measurable)",
     specific_objectives: "- specific_objectives: array of 2-3 specific learning objectives",
     materials: "- materials: array of specific materials needed",
-    sequence: `- sequence:
-    [ { "phase": "Opening",     "description": "...", "duration": number },
-      { "phase": "Development", "description": "...", "duration": number },
-      { "phase": "Closing",     "description": "...", "duration": number } ]`,
+    sequence: `- sequence: Exactly 3 phases. Each "description" field MUST be 6–10 sentences with full detail:
+  • Time breakdown: "Minutos 1-3: [exact action]. Minutos 4-12: [exact action]. Minutos 13-15: [exact action]."
+  • Teacher actions: exact words to say, exact questions to ask, what to write on the board
+  • Student actions: step by step — individual / pairs / groups, what they produce or discuss
+  • Materials: exactly how each material is used in this phase
+  • Transition: how the teacher closes this phase and connects to the next
+  NEVER write vague phrases. Write as a script a substitute teacher can follow exactly.
+  [ { "phase": "Apertura",    "description": "full detailed narrative 6-10 sentences", "duration": number },
+    { "phase": "Desarrollo",  "description": "full detailed narrative 6-10 sentences", "duration": number },
+    { "phase": "Cierre",      "description": "full detailed narrative 6-10 sentences", "duration": number } ]`,
     evaluation: `- evaluation: how the teacher checks learning — must be proportional to ${gradeRef}: for Preescolar use simple observation or oral questions; for Primaria use brief written exercises or group demonstrations; for Secundaria use quizzes, oral presentations, or rubric-based tasks; for Universidad use analysis, projects, or oral defense. Be concrete, not abstract.${hasContext ? " Consider any special needs or group characteristics mentioned in the classroom context." : ""}`,
     reflection: "- reflection: pedagogical reflection / closing thoughts for the teacher (2-3 sentences)",
     adaptations: "- adaptations: array of adjustments for students with special needs",
